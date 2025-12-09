@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contractor Vault - Claim Access</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 500px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .token {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 20px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-steam {
+            background: #1b2838;
+        }
+
+        .btn-steam:hover {
+            background: #2a3f5f;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔐 Contractor Vault</h1>
+        <p>You have been granted temporary access to:</p>
+        <h2 style="color: #4CAF50; margin: 20px 0;">Steam Store</h2>
+
+        <div class="token">
+            Token: tdLBiDgtIE3FSrcpFswB2xVtUG2yqms9n3iWGRo5R8Q
+        </div>
+
+        <button class="btn" id="claimBtn">🔓 Claim Access</button>
+
+        <div id="status"></div>
+
+        <a href="https://store.steampowered.com/login" class="btn btn-steam" id="steamBtn" style="display:none;">
+            🎮 Go to Steam Login →
+        </a>
+    </div>
+
+    <script>
+        const TOKEN = 'tdLBiDgtIE3FSrcpFswB2xVtUG2yqms9n3iWGRo5R8Q';
+        const API_URL = 'http://127.0.0.1:8000';
+
+        document.getElementById('claimBtn').addEventListener('click', async () => {
+            const status = document.getElementById('status');
+            status.textContent = 'Claiming access...';
+            status.className = '';
+
+            try {
+                // Claim the token via API
+                const response = await fetch(`${API_URL}/api/access/claim/${TOKEN}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Token invalid or expired');
+                }
+
+                const data = await response.json();
+
+                // Store in extension's session storage via message
+                if (typeof chrome !== 'undefined' && chrome.runtime) {
+                    chrome.runtime.sendMessage({
+                        type: 'CLAIM_TOKEN',
+                        token: TOKEN
+                    }, (response) => {
+                        console.log('Extension response:', response);
+                    });
+                }
+
+                // Store credentials in localStorage for the content script
+                localStorage.setItem('cv_pending', JSON.stringify({
+                    username: data.username,
+                    targetUrl: data.target_url,
+                    credentialName: data.credential_name
+                }));
+
+                status.textContent = `✅ Access granted! Username: ${data.username}`;
+                status.className = 'success';
+
+                document.getElementById('steamBtn').style.display = 'inline-block';
+                document.getElementById('claimBtn').style.display = 'none';
+
+            } catch (error) {
+                status.textContent = '❌ ' + error.message;
+                status.className = 'error';
+            }
+        });
+    </script>
+</body>
+
+</html>

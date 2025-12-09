@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Contractor Vault</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="popup">
+    <header>
+      <h1>🔐 Contractor Vault</h1>
+    </header>
+
+    <div id="main-menu" class="section">
+      <button id="btn-share" class="btn btn-primary">
+        📤 Share My Login<br>
+        <small>Give a contractor temporary access</small>
+      </button>
+      <button id="btn-claim" class="btn btn-success">
+        📥 I Have a Code<br>
+        <small>Enter access code to log in</small>
+      </button>
+    </div>
+
+    <!-- Share Flow -->
+    <div id="share-flow" class="section hidden">
+      <h2>📤 Share Your Login</h2>
+
+      <div class="step" id="step1">
+        <p>1️⃣ Make sure you're logged into the site you want to share</p>
+        <button id="btn-capture" class="btn btn-primary">Capture Current Site</button>
+      </div>
+
+      <div class="step hidden" id="step2">
+        <p>2️⃣ Set access duration</p>
+        <select id="duration">
+          <option value="2">2 minutes (testing)</option>
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="120">2 hours</option>
+          <option value="480">8 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
+        <input type="email" id="contractor-email" placeholder="Contractor's email (optional)">
+        <button id="btn-generate" class="btn btn-success">Generate Access Code</button>
+      </div>
+
+      <div class="step hidden" id="step3">
+        <p>3️⃣ Send this code to your contractor:</p>
+        <div class="code-box">
+          <input type="text" id="access-code" readonly>
+          <button id="btn-copy" class="btn-small">📋 Copy</button>
+        </div>
+        <p class="note">They'll paste this in the extension to get access!</p>
+      </div>
+
+      <div id="share-status" class="status hidden"></div>
+      <button id="btn-back-share" class="btn-link">← Back</button>
+    </div>
+
+    <!-- Claim Flow -->
+    <div id="claim-flow" class="section hidden">
+      <h2>📥 Enter Access Code</h2>
+      <p>Paste the code your admin gave you:</p>
+
+      <input type="text" id="claim-code" placeholder="Paste access code here">
+      <button id="btn-activate" class="btn btn-success">🔓 Activate Access</button>
+
+      <div id="claim-status" class="status hidden"></div>
+      <button id="btn-back-claim" class="btn-link">← Back</button>
+    </div>
+
+    <!-- Active Session -->
+    <div id="active-session" class="section hidden">
+      <h2>✅ You Have Access!</h2>
+      <div class="session-info">
+        <p><strong>Site:</strong> <span id="session-site"></span></p>
+        <p><strong>Expires:</strong> <span id="session-expires"></span></p>
+      </div>
+      <a id="btn-open" class="btn btn-success" target="_blank">🌐 Open Site (You're logged in!)</a>
+      <p class="note">Just visit the site - your session is active.</p>
+    </div>
+
+    <footer>Secure • Temporary • Audited</footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+
+</html>

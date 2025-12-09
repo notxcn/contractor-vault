@@ -1,0 +1,258 @@
+/* Contractor Vault - Popup Styles v3 */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #fff;
+  min-width: 320px;
+  min-height: 400px;
+}
+
+.popup {
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+header h1 {
+  font-size: 18px;
+}
+
+.section {
+  animation: fadeIn 0.2s ease;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+h2 {
+  font-size: 15px;
+  margin-bottom: 15px;
+  color: #90EE90;
+}
+
+p {
+  font-size: 13px;
+  color: #ddd;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.note {
+  font-size: 11px;
+  color: #aaa;
+  font-style: italic;
+  margin-top: 10px;
+}
+
+/* Buttons */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 10px;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s;
+  color: #fff;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn small {
+  display: block;
+  font-weight: normal;
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+}
+
+.btn-link {
+  background: none;
+  color: #aaa;
+  font-size: 12px;
+  padding: 8px;
+  margin-top: 10px;
+}
+
+.btn-link:hover {
+  color: #fff;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-small {
+  display: inline-block;
+  width: auto;
+  padding: 8px 14px;
+  font-size: 12px;
+  border-radius: 4px;
+  background: #555;
+  margin: 0;
+}
+
+/* Form elements */
+input[type="text"],
+input[type="email"] {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+}
+
+input::placeholder {
+  color: #888;
+}
+
+input:focus {
+  outline: none;
+  border-color: #38ef7d;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Select dropdown - FIXED */
+select {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+select:focus {
+  outline: none;
+  border-color: #38ef7d;
+}
+
+select option {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 10px;
+}
+
+/* Steps */
+.step {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+/* Code box */
+.code-box {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.code-box input {
+  flex: 1;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+
+/* Status messages */
+.status {
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin: 12px 0;
+  word-wrap: break-word;
+}
+
+.status.success {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.status.error {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.status.loading {
+  background: rgba(255, 193, 7, 0.2);
+  color: #FFC107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+/* Session info */
+.session-info {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.session-info p {
+  margin-bottom: 8px;
+  color: #ddd;
+}
+
+footer {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+  color: #666;
+}
