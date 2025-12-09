@@ -3,7 +3,7 @@
  * Fixed notification IDs and icon issues
  */
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://contractor-vault-production.up.railway.app';
 
 // ===== UTILITY FUNCTIONS =====
 
