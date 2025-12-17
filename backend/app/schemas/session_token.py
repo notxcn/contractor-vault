@@ -53,8 +53,15 @@ class GenerateTokenResponse(BaseModel):
         ...,
         description="Token expiration timestamp (UTC)"
     )
+    contractor_email: str = Field(
+        ...,
+        description="Email of contractor receiving access"
+    )
     credential_name: str
-    target_url: str
+    admin_dashboard_url: str = Field(
+        ...,
+        description="URL to the admin dashboard for managing this session"
+    )
 
 
 class ClaimTokenRequest(BaseModel):
@@ -135,3 +142,27 @@ class RevokeResponse(BaseModel):
         description="Number of tokens revoked"
     )
     message: str
+
+
+class TokenListItem(BaseModel):
+    """Schema for displaying a token in the admin dashboard."""
+    id: str
+    token: str
+    credential_id: str
+    credential_name: Optional[str] = None
+    target_url: Optional[str] = None
+    contractor_email: str
+    expires_at: datetime
+    is_revoked: bool
+    revoked_at: Optional[datetime] = None
+    revoked_by: Optional[str] = None
+    created_at: datetime
+    created_by: str
+    use_count: int
+    status: str = Field(
+        ...,
+        description="Token status: 'active', 'expired', or 'revoked'"
+    )
+    
+    class Config:
+        from_attributes = True

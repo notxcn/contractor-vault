@@ -282,13 +282,18 @@ async def claim_session(
             description=f"Session claimed for {stored_session.name}"
         )
         
+        # Ensure expires_at has timezone info for proper JS parsing
+        expires_at = session_token.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        
         # Return cookies for injection
         return {
             "success": True,
             "session_name": stored_session.name,
             "target_url": stored_session.target_url,
             "cookies": cookies_data,
-            "expires_at": session_token.expires_at.isoformat(),
+            "expires_at": expires_at.isoformat(),
             "message": f"Session ready for injection ({len(cookies_data)} cookies)"
         }
     except HTTPException:

@@ -1,6 +1,6 @@
 /**
- * Contractor Vault - Background Service Worker v2.5
- * Fixed notification IDs and icon issues
+ * Contractor Vault - Background Service Worker v3.3
+ * Added server-side validation (Kill Switch polling)
  */
 
 const API_URL = 'https://contractor-vault-production.up.railway.app';
@@ -16,6 +16,30 @@ function getRootDomain(domain) {
     return parts.length >= 2 ? parts.slice(-2).join('.') : domain;
 }
 
+async function reloadMatchingTabs(targetUrl) {
+    if (!targetUrl) return;
+    try {
+        const domain = extractDomain(targetUrl);
+        const root = getRootDomain(domain);
+
+        console.log(`[CV] Attempting to reload tabs for ${domain} (${root})...`);
+
+        const tabs = await chrome.tabs.query({});
+        const tabsToReload = tabs.filter(t => t.url && (t.url.includes(domain) || t.url.includes(root)));
+
+        for (const tab of tabsToReload) {
+            console.log(`[CV] Reloading tab ${tab.id}: ${tab.title}`);
+            try {
+                await chrome.tabs.reload(tab.id);
+            } catch (ignore) {
+                // Tab might have closed
+            }
+        }
+    } catch (e) {
+        console.warn('[CV] Error reloading tabs:', e);
+    }
+}
+
 // ===== SESSION BADGE =====
 
 async function updateBadge() {
@@ -26,10 +50,15 @@ async function updateBadge() {
             const expiresAt = new Date(activeSession.expiresAt);
             const now = new Date();
             const minutesLeft = Math.floor((expiresAt - now) / 60000);
+            const secondsLeft = Math.floor((expiresAt - now) / 1000);
 
-            if (minutesLeft <= 0) {
+            if (secondsLeft <= 0) {
                 await chrome.action.setBadgeText({ text: '' });
                 await performLogout();
+            } else if (minutesLeft <= 1) {
+                // Show seconds when under 1 minute
+                await chrome.action.setBadgeText({ text: `${Math.max(0, secondsLeft)}s` });
+                await chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
             } else if (minutesLeft <= 5) {
                 await chrome.action.setBadgeText({ text: `${minutesLeft}m` });
                 await chrome.action.setBadgeBackgroundColor({ color: '#FFA500' });
@@ -64,25 +93,36 @@ async function performLogout() {
 
                     await chrome.cookies.remove({ url, name: cookie.name });
                 } catch (e) {
-                    // Ignore individual cookie deletion errors
+                    console.warn(`[CV] Failed to delete cookie ${cookie.name}:`, e);
                 }
             }
+            console.log('[CV] All cookies deleted.');
         }
 
         // Show notification with unique ID
         if (activeSession) {
-            const notifId = `expired-${Date.now()}`;
-            await chrome.notifications.create(notifId, {
-                type: 'basic',
-                iconUrl: chrome.runtime.getURL('icons/icon128.png'),
-                title: 'Session Expired - Logged Out',
-                message: `Your session for ${activeSession.name} has expired.`,
-                priority: 2
-            });
+            // Check if we are logging out due to revocation (custom handled in checkExpiry) or normal expiry
+            // We'll just show generic if not already handled, but for simplicity we rely on checkExpiry for revocation msg
+            // and here for general expiry.
+
+            // We can check a flag or just execute.
+            // But to avoid double notification, we can just do it.
+            // Or better: performLogout takes an optional message?
         }
+
+        // Note: Notification logic moved to caller or handled here generically if not passed
+        // For now we keep the gentle expiry message here, checkExpiry handles revocation specific
+
+        await reloadMatchingTabs(activeSession ? activeSession.targetUrl : null);
 
         await chrome.storage.session.clear();
         await chrome.action.setBadgeText({ text: '' });
+
+        // Cancel alarms
+        await chrome.alarms.clear('checkExpiry');
+        await chrome.alarms.clear('preciseExpiry');
+
+        await flushOnLogout();
 
         console.log('[CV] Auto-logout complete');
     } catch (e) {
@@ -90,38 +130,92 @@ async function performLogout() {
     }
 }
 
-// ===== EXPIRY WARNING =====
+// ===== EXPIRY CHECK - Runs frequently + Precise =====
 
 async function checkExpiry() {
     try {
-        const { activeSession, warningShown } = await chrome.storage.session.get(['activeSession', 'warningShown']);
+        const { activeSession, warningShown, currentToken } = await chrome.storage.session.get(['activeSession', 'warningShown', 'currentToken']);
 
         if (activeSession) {
-            const expiresAt = new Date(activeSession.expiresAt);
-            const now = new Date();
-            const minutesLeft = Math.floor((expiresAt - now) / 60000);
 
-            // Show warning at 5 minutes OR 1 minute (for short sessions)
-            const shouldWarn = (minutesLeft <= 5 && minutesLeft > 0 && !warningShown) ||
-                (minutesLeft <= 1 && minutesLeft > 0);
+            // --- SERVER-SIDE VALIDATION (KILL SWITCH) ---
+            if (currentToken) {
+                try {
+                    // Poll backend to see if token is still valid
+                    const res = await fetch(`${API_URL}/api/access/validate/${currentToken}`);
+                    if (res.ok) {
+                        const status = await res.json();
 
-            if (shouldWarn && !warningShown) {
-                const notifId = `warning-${Date.now()}`;
-                await chrome.notifications.create(notifId, {
-                    type: 'basic',
-                    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
-                    title: '⚠️ Session Expiring Soon!',
-                    message: minutesLeft <= 1
-                        ? `Your session expires in less than 1 minute!`
-                        : `Your session expires in ${minutesLeft} minutes!`,
-                    priority: 2
-                });
-                await chrome.storage.session.set({ warningShown: true });
+                        if (!status.valid) {
+                            console.log('[CV] Server validation failed:', status.status);
+
+                            // If revoked, show specific aggressive message
+                            if (status.status === 'revoked') {
+                                await chrome.notifications.create(`revoked-${Date.now()}`, {
+                                    type: 'basic',
+                                    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+                                    title: '🚫 Access Revoked',
+                                    message: 'Your administrator has immediately revoked access to this session.',
+                                    priority: 2,
+                                    requireInteraction: true
+                                });
+                            } else {
+                                // Expired according to server (maybe clock diff)
+                                await chrome.notifications.create(`expired-${Date.now()}`, {
+                                    type: 'basic',
+                                    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+                                    title: '🔒 Session Expired',
+                                    message: 'Your session has expired.',
+                                    priority: 2
+                                });
+                            }
+
+                            await performLogout();
+                            return; // Stop processing
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[CV] Validation poll failed (offline?):', err);
+                    // Continue to local check as fallback
+                }
             }
 
-            // Session expired
-            if (minutesLeft <= 0) {
+            // --- LOCAL TIME CHECK ---
+            const expiresAt = new Date(activeSession.expiresAt);
+            const now = new Date();
+            const secondsLeft = Math.floor((expiresAt - now) / 1000);
+
+            console.log(`[CV] Expiry check: ${secondsLeft}s left`);
+
+            // Session expired!
+            if (secondsLeft <= 0) {
+                console.log('[CV] Session expired (local check)!');
+                await chrome.notifications.create(`expired-${Date.now()}`, {
+                    type: 'basic',
+                    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+                    title: '🔒 Session Expired',
+                    message: `Time's up! You have been logged out of ${activeSession.name}.`,
+                    priority: 2
+                });
                 await performLogout();
+                return;
+            }
+
+            // Show warning at 1 minute (60 seconds)
+            if (secondsLeft <= 60 && secondsLeft > 0 && !warningShown) {
+                const notifId = `warning-${Date.now()}`;
+                try {
+                    await chrome.notifications.create(notifId, {
+                        type: 'basic',
+                        iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+                        title: '⚠️ Session Expiring Soon!',
+                        message: `Your session expires in ${secondsLeft} seconds!`,
+                        priority: 2
+                    });
+                    await chrome.storage.session.set({ warningShown: true });
+                } catch (e) {
+                    console.warn('[CV] Warning notification error:', e);
+                }
             }
 
             await updateBadge();
@@ -279,28 +373,33 @@ async function claimSession(token) {
         warningShown: false,
     });
 
-    // Set up expiry check alarm
-    await chrome.alarms.create('checkExpiry', { periodInMinutes: 1 });
-    await updateBadge();
+    // 1. Regular polling safety net + server check (every 15s)
+    await chrome.alarms.clear('checkExpiry');
+    await chrome.alarms.create('checkExpiry', {
+        delayInMinutes: 0.1,
+        periodInMinutes: 0.25
+    });
 
+    // 2. Exact timestamp alarm (Precise Kickoff)
+    await chrome.alarms.clear('preciseExpiry');
+    const expiryTime = new Date(data.expires_at).getTime();
+    if (expiryTime > Date.now()) {
+        console.log(`[CV] Setting precise expiry alarm for: ${new Date(expiryTime).toLocaleString()}`);
+        await chrome.alarms.create('preciseExpiry', { when: expiryTime });
+    }
+
+    await updateBadge();
+    console.log('[CV] Session active, dual alarms set');
     return data;
 }
 
 // ===== MESSAGE HANDLER =====
 
 chrome.runtime.onMessage.addListener((msg, sender, respond) => {
-    console.log('[CV] Message received:', msg.type);
-
     if (msg.type === 'CAPTURE_AND_STORE') {
         captureAndStore(msg.domain, msg.name, msg.adminEmail)
-            .then(data => {
-                console.log('[CV] CAPTURE_AND_STORE success');
-                respond({ success: true, data });
-            })
-            .catch(e => {
-                console.error('[CV] CAPTURE_AND_STORE error:', e);
-                respond({ success: false, error: e.message });
-            });
+            .then(data => respond({ success: true, data }))
+            .catch(e => respond({ success: false, error: e.message }));
         return true;
     }
 
@@ -324,30 +423,118 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
             .catch(e => respond({ success: false, error: e.message }));
         return true;
     }
-
     return false;
 });
 
-// ===== ALARM HANDLERS =====
+// ===== ALARM HANDLERS (The Watchdogs) =====
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (alarm.name === 'checkExpiry') {
         await checkExpiry();
+    } else if (alarm.name === 'preciseExpiry') {
+        console.log('[CV] Precise expiry alarm fired! Session ended.');
+        // Show notification here since performLogout doesn't anymore (to avoid duplicate triggers)
+        await chrome.notifications.create(`expired-${Date.now()}`, {
+            type: 'basic',
+            iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+            title: '🔒 Session Expired',
+            message: `Time's up! You have been logged out.`,
+            priority: 2,
+            requireInteraction: true
+        });
+        await performLogout();
+    } else if (alarm.name === 'flushActivity') {
+        await flushActivityBuffer();
     }
 });
 
 // ===== STARTUP =====
 
 chrome.runtime.onStartup.addListener(async () => {
-    console.log('[CV] Extension startup');
     await checkExpiry();
     await updateBadge();
 });
 
 chrome.runtime.onInstalled.addListener(async () => {
-    console.log('[CV] Extension installed/updated');
     await updateBadge();
-    await chrome.alarms.create('checkExpiry', { periodInMinutes: 1 });
+    // Re-register alarms if valid session exists
+    const { activeSession } = await chrome.storage.session.get('activeSession');
+    if (activeSession) {
+        const expiryTime = new Date(activeSession.expiresAt).getTime();
+        if (expiryTime > Date.now()) {
+            await chrome.alarms.create('checkExpiry', { delayInMinutes: 0.1, periodInMinutes: 0.25 });
+            await chrome.alarms.create('preciseExpiry', { when: expiryTime });
+        }
+    }
 });
 
-console.log('[CV] Background v2.5 ready');
+// ===== SESSION RECORDER (Buffer & Flush) =====
+
+let activityBuffer = [];
+let lastUrl = null;
+let lastUrlTimestamp = null;
+
+chrome.webNavigation.onCompleted.addListener(async (details) => {
+    if (details.frameId !== 0) return;
+    try {
+        const { activeSession, currentToken } = await chrome.storage.session.get(['activeSession', 'currentToken']);
+        if (!activeSession || !currentToken) return;
+
+        let title = null;
+        try {
+            const tab = await chrome.tabs.get(details.tabId);
+            title = tab.title;
+        } catch (e) { }
+
+        const now = new Date();
+        if (activityBuffer.length > 0 && lastUrl && lastUrlTimestamp) {
+            activityBuffer[activityBuffer.length - 1].duration_ms = now.getTime() - lastUrlTimestamp.getTime();
+        }
+
+        activityBuffer.push({
+            url: details.url,
+            title: title,
+            transition_type: details.transitionType || null,
+            referrer_url: lastUrl,
+            timestamp: now.toISOString(),
+            duration_ms: null
+        });
+
+        lastUrl = details.url;
+        lastUrlTimestamp = now;
+        console.log(`[CV] Activity logged: ${details.url.substring(0, 50)}...`);
+    } catch (e) { console.warn('[CV] Activity logging error:', e); }
+});
+
+async function flushActivityBuffer() {
+    if (activityBuffer.length === 0) return;
+    try {
+        const { currentToken } = await chrome.storage.session.get('currentToken');
+        if (!currentToken) { activityBuffer = []; return; }
+
+        const batch = { session_token: currentToken, activities: [...activityBuffer] };
+        activityBuffer = []; // Clear local buffer immediately
+
+        const response = await fetch(`${API_URL}/api/activity/log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(batch)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log(`[CV] Flushed ${result.logged_count} activities`);
+        }
+    } catch (e) {
+        console.warn('[CV] Activity flush error:', e);
+        // Note: We lost the buffer here but that's better than infinite loop of broken retries
+    }
+}
+
+chrome.alarms.create('flushActivity', { periodInMinutes: 0.167 }); // 10s
+
+async function flushOnLogout() {
+    await flushActivityBuffer();
+}
+
+console.log('[CV] Background v3.3 ready - Remote Kill Switch');

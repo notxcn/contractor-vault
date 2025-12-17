@@ -3,7 +3,7 @@
  * Properly fixed error handling
  */
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'https://contractor-vault-production.up.railway.app';
 
 // State
 let capturedSessionId = null;

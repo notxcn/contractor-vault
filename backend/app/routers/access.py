@@ -19,10 +19,12 @@ from app.schemas.session_token import (
     RevokeTokenRequest,
     RevokeAllRequest,
     RevokeResponse,
+    TokenListItem,
 )
 from app.services.encryption import get_encryption_service, EncryptionService
 from app.services.token_service import get_token_service, TokenService
 from app.services.audit_service import AuditService
+from app.services.discord_webhook import get_discord_service
 from app.middleware.audit_middleware import get_audit_context
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,85 @@ router = APIRouter(prefix="/api/access", tags=["Access Control"])
 def get_audit_service(db: Session = Depends(get_db)) -> AuditService:
     """Dependency for audit service."""
     return AuditService(db)
+
+
+@router.get(
+    "/tokens",
+    response_model=list[TokenListItem],
+    summary="List all access tokens with their status"
+)
+async def list_tokens(
+    db: Annotated[Session, Depends(get_db)],
+    status_filter: str | None = None,
+    skip: int = 0,
+    limit: int = 100,
+):
+    """
+    List all session tokens for the admin dashboard.
+    
+    Args:
+        status_filter: Optional filter - 'active', 'expired', 'revoked', or None for all
+        skip: Number of records to skip (pagination)
+        limit: Maximum number of records to return
+    
+    Returns:
+        List of tokens with their current status
+    """
+    query = db.query(SessionToken)
+    
+    now = datetime.now(timezone.utc)
+    
+    if status_filter == "active":
+        query = query.filter(
+            SessionToken.is_revoked == False,
+            SessionToken.expires_at > now
+        )
+    elif status_filter == "expired":
+        query = query.filter(
+            SessionToken.is_revoked == False,
+            SessionToken.expires_at <= now
+        )
+    elif status_filter == "revoked":
+        query = query.filter(SessionToken.is_revoked == True)
+    
+    tokens = query.order_by(SessionToken.created_at.desc()).offset(skip).limit(limit).all()
+    
+    result = []
+    for token in tokens:
+        # Determine status
+        # Handle potentially naive token.expires_at
+        token_expires = token.expires_at
+        if token_expires.tzinfo is None:
+            token_expires = token_expires.replace(tzinfo=timezone.utc)
+        
+        if token.is_revoked:
+            status = "revoked"
+        elif token_expires <= now:
+            status = "expired"
+        else:
+            status = "active"
+        
+        # Get credential info if available
+        credential = db.query(Credential).filter(Credential.id == token.credential_id).first()
+        
+        result.append(TokenListItem(
+            id=token.id,
+            token=token.token[:8] + "...",  # Truncate for security
+            credential_id=token.credential_id,
+            credential_name=credential.name if credential else None,
+            target_url=credential.target_url if credential else None,
+            contractor_email=token.contractor_email,
+            expires_at=token.expires_at,
+            is_revoked=token.is_revoked,
+            revoked_at=token.revoked_at,
+            revoked_by=token.revoked_by,
+            created_at=token.created_at,
+            created_by=token.created_by,
+            use_count=token.use_count,
+            status=status,
+        ))
+    
+    return result
 
 
 @router.post(
@@ -115,6 +196,17 @@ async def generate_access_token(
         f"to {credential.name}, expires at {expires_at.isoformat()}"
     )
     
+    # Send Discord notification
+    discord = get_discord_service()
+    await discord.notify_access_granted(
+        contractor_email=payload.contractor_email,
+        credential_name=credential.name,
+        duration_minutes=payload.duration_minutes,
+        admin_email=payload.admin_email,
+    )
+    
+    admin_dashboard_url = "https://contractor-vault-production.up.railway.app/dashboard"
+    
     return GenerateTokenResponse(
         token_id=session_token.id,
         claim_url=claim_url,
@@ -122,6 +214,7 @@ async def generate_access_token(
         expires_at=expires_at,
         contractor_email=payload.contractor_email,
         credential_name=credential.name,
+        admin_dashboard_url=admin_dashboard_url,
     )
 
 
@@ -210,6 +303,15 @@ async def claim_token(
         f"(use #{session_token.use_count})"
     )
     
+    # Send Discord notification (only on first use)
+    if session_token.use_count == 1:
+        discord = get_discord_service()
+        await discord.notify_access_claimed(
+            contractor_email=session_token.contractor_email,
+            credential_name=credential.name,
+            ip_address=audit_context["client_ip"],
+        )
+    
     return ClaimTokenResponse(
         success=True,
         credential_name=credential.name,
@@ -218,6 +320,33 @@ async def claim_token(
         encrypted_password=encrypted_password_b64,
         expires_at=session_token.expires_at,
     )
+
+
+@router.get(
+    "/validate/{token}",
+    summary="Check if a token is still valid (for extension polling)"
+)
+async def validate_token(
+    token: str,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Lightweight endpoint for the extension to poll status.
+    Returns { valid: bool, status: str }
+    """
+    token_obj = db.query(SessionToken).filter(SessionToken.token == token).first()
+    
+    if not token_obj:
+        return {"valid": False, "status": "not_found"}
+        
+    if token_obj.is_revoked:
+        return {"valid": False, "status": "revoked"}
+        
+    now = datetime.now(timezone.utc)
+    if token_obj.expires_at <= now:
+        return {"valid": False, "status": "expired"}
+        
+    return {"valid": True, "status": "active"}
 
 
 @router.post(
@@ -279,6 +408,15 @@ async def revoke_token(
     logger.warning(
         f"Token revoked: {token_id} for {session_token.contractor_email} "
         f"by {payload.admin_email}"
+    )
+    
+    # Send Discord notification
+    discord = get_discord_service()
+    await discord.notify_access_revoked(
+        contractor_email=session_token.contractor_email,
+        credential_name=session_token.credential.name,
+        admin_email=payload.admin_email,
+        reason=payload.reason,
     )
     
     return RevokeResponse(
@@ -355,6 +493,15 @@ async def revoke_all_tokens(
     logger.warning(
         f"KILL SWITCH activated: Revoked {len(active_tokens)} tokens "
         f"for {contractor_email} by {payload.admin_email}"
+    )
+    
+    # Send Discord notification
+    discord = get_discord_service()
+    await discord.notify_kill_switch(
+        contractor_email=contractor_email,
+        revoked_count=len(active_tokens),
+        admin_email=payload.admin_email,
+        reason=payload.reason,
     )
     
     return RevokeResponse(

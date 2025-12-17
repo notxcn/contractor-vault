@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.middleware import AuditMiddleware
-from app.routers import access_router, credentials_router, audit_router
+from app.routers import access_router, credentials_router, audit_router, analytics_router, activity_router, email_router, contractor_router
 from app.routers.sessions import router as sessions_router
 
 # Configure logging
@@ -63,6 +63,10 @@ def create_app() -> FastAPI:
     app.include_router(access_router)
     app.include_router(credentials_router)
     app.include_router(audit_router)
+    app.include_router(analytics_router)
+    app.include_router(activity_router)
+    app.include_router(email_router)
+    app.include_router(contractor_router)
     app.include_router(sessions_router)
     
     # Health check

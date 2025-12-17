@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256")
     jwt_issuer: str = Field(default="contractor-vault")
     
+    # Discord webhook (optional)
+    discord_webhook_url: Optional[str] = Field(
+        default=None,
+        description="Discord webhook URL for notifications (optional)"
+    )
+    
     @field_validator("fernet_key")
     @classmethod
     def validate_fernet_key(cls, v: str) -> str:
