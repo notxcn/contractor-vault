@@ -423,9 +423,9 @@ async def revoke_token(
     db.commit()
     
     # Get resource info (handle both Credential and StoredSession tokens)
-    credential = session_token.credential
-    credential_name = credential.name if credential else "Unknown Session"
-    target_url = credential.target_url if credential else session_token.credential_id
+    credential = db.query(Credential).filter(Credential.id == session_token.credential_id).first()
+    credential_name = credential.name if credential else "Session"
+    target_url = credential.target_url if credential else f"session:{session_token.credential_id}"
     
     # Log revocation
     audit_context = get_audit_context(request)
