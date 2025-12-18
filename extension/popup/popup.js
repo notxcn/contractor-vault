@@ -89,6 +89,11 @@ $('btn-claim').onclick = () => {
 $('btn-back-share').onclick = () => showSection('main-menu');
 $('btn-back-claim').onclick = () => showSection('main-menu');
 
+// Admin Link
+$('btn-admin').onclick = () => {
+    chrome.tabs.create({ url: 'https://contractor-vault-production.up.railway.app/dashboard' });
+};
+
 // SHARE: Step 1 - Capture
 $('btn-capture').onclick = async () => {
     const btn = $('btn-capture');
