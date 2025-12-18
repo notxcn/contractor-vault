@@ -28,6 +28,7 @@ class AuditAction(str, Enum):
     LOGIN_SUCCESS = "LOGIN_SUCCESS"         # Admin login
     LOGIN_FAILURE = "LOGIN_FAILURE"         # Failed login attempt
     TOKEN_VALIDATED = "TOKEN_VALIDATED"     # Token validation check
+    SECURITY_ALERT = "SECURITY_ALERT"       # Security policy violation (e.g. IP mismatch)
 
 
 class AuditLog(Base):

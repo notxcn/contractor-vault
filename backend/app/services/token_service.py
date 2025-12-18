@@ -39,6 +39,7 @@ class TokenService:
         credential_id: str,
         contractor_email: str,
         expires_at: datetime,
+        allowed_ip: Optional[str] = None,
         additional_claims: Optional[dict[str, Any]] = None
     ) -> str:
         """
@@ -49,6 +50,7 @@ class TokenService:
             credential_id: The credential being accessed
             contractor_email: Email of the contractor
             expires_at: Token expiration time
+            allowed_ip: Optional IP address restriction
             additional_claims: Optional extra claims
             
         Returns:
@@ -69,6 +71,9 @@ class TokenService:
             "credential_id": credential_id,
             "purpose": "credential_access",
         }
+        
+        if allowed_ip:
+            claims["ip"] = allowed_ip
         
         if additional_claims:
             claims.update(additional_claims)

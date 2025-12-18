@@ -162,6 +162,7 @@ $('btn-generate').onclick = async () => {
                 credential_id: capturedSessionId,
                 contractor_email: email,
                 duration_minutes: duration,
+                allowed_ip: $('allowed-ip').value.trim() || null,
                 admin_email: 'admin@contractor-vault.local',
             }),
         });

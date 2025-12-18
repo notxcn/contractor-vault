@@ -232,6 +232,23 @@ class DiscordWebhookService:
             footer="Review in dashboard",
         )
 
+    async def notify_security_alert(
+        self,
+        alert_type: str,
+        details: str,
+    ):
+        """Notify when a security alert occurs."""
+        await self.send_embed(
+            title="🚨 Security Alert",
+            description=f"Security violation detected",
+            color=0xED4245,  # Red
+            fields=[
+                {"name": "Alert Type", "value": alert_type, "inline": True},
+                {"name": "Details", "value": details, "inline": False},
+            ],
+            footer="Immediate investigation recommended",
+        )
+
 
 # Singleton instance
 _discord_service: Optional[DiscordWebhookService] = None

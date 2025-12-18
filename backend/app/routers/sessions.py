@@ -152,6 +152,7 @@ async def generate_session_token(
         contractor_email=token_request.contractor_email,
         expires_at=expires_at,
         created_by=token_request.admin_email,
+        allowed_ip=token_request.allowed_ip,
     )
     
     db.add(session_token)
@@ -164,6 +165,7 @@ async def generate_session_token(
         credential_id=stored_session.id,
         contractor_email=token_request.contractor_email,
         expires_at=expires_at,
+        allowed_ip=token_request.allowed_ip,
     )
     
     # Build claim URL
@@ -195,6 +197,8 @@ async def generate_session_token(
         expires_at=expires_at,
         credential_name=stored_session.name,
         target_url=stored_session.target_url,
+        contractor_email=token_request.contractor_email,
+        admin_dashboard_url="https://contractor-vault-production.up.railway.app/dashboard",
     )
 
 
@@ -230,6 +234,41 @@ async def claim_session(
                 status_code=status.HTTP_410_GONE,
                 detail="Token has expired"
             )
+
+        # IP Whitelist Validation
+        if session_token.allowed_ip:
+            ip_address = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
+            client_ip = ip_address.split(",")[0].strip() if ip_address else "unknown"
+            
+            if client_ip != session_token.allowed_ip and client_ip != "unknown":
+                logger.warning(f"IP mismatch for token {session_token.id}. Expected {session_token.allowed_ip}, got {client_ip}")
+                
+                # Audit log
+                audit_service = AuditService(db)
+                audit_service.log(
+                    actor=session_token.contractor_email,
+                    action=AuditAction.SECURITY_ALERT,
+                    target_resource=session_token.credential_id, # StoredSession ID
+                    ip_address=client_ip,
+                    extra_data={"expected_ip": session_token.allowed_ip, "token_id": session_token.id},
+                    description=f"Blocked access from unauthorized IP {client_ip} (Allowed: {session_token.allowed_ip})"
+                )
+                
+                # Send Discord alert (fire and forget)
+                try:
+                    from app.services.discord_webhook import get_discord_service
+                    discord = get_discord_service()
+                    await discord.notify_security_alert(
+                       alert_type="IP Whitelist Mismatch",
+                       details=f"User {session_token.contractor_email} attempted access from {client_ip} (Allowed: {session_token.allowed_ip})"
+                    )
+                except Exception:
+                    pass
+
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied from this IP address"
+                )
         
         # Check if revoked
         if session_token.is_revoked:

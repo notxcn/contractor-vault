@@ -68,6 +68,13 @@ class SessionToken(Base):
         nullable=False,
         comment="Email of the contractor granted access"
     )
+
+    # IP Whitelisting
+    allowed_ip: Mapped[str | None] = mapped_column(
+        String(45),  # IPv6 max length
+        nullable=True,
+        comment="Optional IP address restriction"
+    )
     
     # Token validity
     expires_at: Mapped[datetime] = mapped_column(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, Loader2, Key, Mail, Clock, Globe } from "lucide-react";
+import { Plus, X, Loader2, Key, Mail, Clock, Globe, Shield } from "lucide-react";
 
 interface TokenCreationModalProps {
     isOpen: boolean;
@@ -14,6 +14,7 @@ interface TokenCreationData {
     credential_name: string;
     target_url: string;
     duration_hours: number;
+    allowed_ip?: string;
 }
 
 export function TokenCreationModal({ isOpen, onClose, onSubmit }: TokenCreationModalProps) {
@@ -127,7 +128,22 @@ export function TokenCreationModal({ isOpen, onClose, onSubmit }: TokenCreationM
                             <option value={48}>48 hours</option>
                             <option value={72}>72 hours</option>
                             <option value={168}>1 week</option>
+                            <option value={168}>1 week</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                            <Shield className="inline h-4 w-4 mr-2" />
+                            IP Whitelist (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.allowed_ip || ""}
+                            onChange={(e) => setFormData({ ...formData, allowed_ip: e.target.value })}
+                            placeholder="e.g. 203.0.113.1"
+                            className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                        />
                     </div>
 
                     {error && (

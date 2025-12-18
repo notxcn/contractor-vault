@@ -295,7 +295,7 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
-  const handleCreateToken = async (data: { contractor_email: string; credential_name: string; target_url: string; duration_hours: number }) => {
+  const handleCreateToken = async (data: { contractor_email: string; credential_name: string; target_url: string; duration_hours: number; allowed_ip?: string }) => {
     const response = await fetch(`${API_URL}/api/access/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -305,6 +305,7 @@ export default function Dashboard() {
         admin_email: adminEmail,
         target_url: data.target_url,
         duration_hours: data.duration_hours,
+        allowed_ip: data.allowed_ip,
       }),
     });
     if (!response.ok) {

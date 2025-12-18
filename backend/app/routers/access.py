@@ -159,6 +159,7 @@ async def generate_access_token(
         contractor_email=payload.contractor_email,
         expires_at=expires_at,
         created_by=payload.admin_email,
+        allowed_ip=payload.allowed_ip,
     )
     db.add(session_token)
     db.commit()
@@ -170,6 +171,7 @@ async def generate_access_token(
         credential_id=credential.id,
         contractor_email=payload.contractor_email,
         expires_at=expires_at,
+        allowed_ip=payload.allowed_ip,
     )
     
     # Log to audit trail
@@ -271,6 +273,36 @@ async def claim_token(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Token has expired"
+            )
+
+    # IP Whitelist Validation
+    if session_token.allowed_ip:
+        audit_context = get_audit_context(request)
+        client_ip = audit_context["client_ip"]
+        
+        if client_ip != session_token.allowed_ip and client_ip != "unknown":
+            logger.warning(f"IP mismatch for token {session_token.id}. Expected {session_token.allowed_ip}, got {client_ip}")
+            audit_service.log(
+                actor=session_token.contractor_email,
+                action=AuditAction.SECURITY_ALERT,
+                target_resource=session_token.credential.target_url,
+                ip_address=client_ip,
+                extra_data={"expected_ip": session_token.allowed_ip, "token_id": session_token.id},
+                description=f"Blocked access from unauthorized IP {client_ip} (Allowed: {session_token.allowed_ip})"
+            )
+            # Send Discord alert
+            try:
+                discord = get_discord_service()
+                await discord.notify_security_alert(
+                   alert_type="IP Whitelist Mismatch",
+                   details=f"User {session_token.contractor_email} attempted access from {client_ip} (Allowed: {session_token.allowed_ip})"
+                )
+            except Exception:
+                pass # Don't block on discord error
+
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied from this IP address"
             )
     
     credential = session_token.credential

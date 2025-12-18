@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -10,84 +10,105 @@
 <body>
   <div class="popup">
     <header>
-      <h1>🔐 Contractor Vault</h1>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <path d="M12 8v4" />
+        <path d="M12 16h.01" />
+      </svg>
+      <h1>Contractor Vault</h1>
     </header>
 
     <div id="main-menu" class="section">
       <div id="capture-indicator" class="capture-indicator hidden">
         <div class="indicator-dot"></div>
-        <span>Session Capture Active</span>
+        <span>Recording Session...</span>
       </div>
+
       <button id="btn-share" class="btn btn-primary">
-        📤 Share My Login<br>
-        <small>Give a contractor temporary access</small>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <polyline points="16 6 12 2 8 6" />
+          <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
+        Share My Login
       </button>
+
       <button id="btn-claim" class="btn btn-success">
-        📥 I Have a Code<br>
-        <small>Enter access code to log in</small>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        I Have an Access Code
       </button>
     </div>
 
     <!-- Share Flow -->
     <div id="share-flow" class="section hidden">
-      <h2>📤 Share Your Login</h2>
-
-      <div class="step" id="step1">
-        <p>1️⃣ Make sure you're logged into the site you want to share</p>
-        <button id="btn-capture" class="btn btn-primary">Capture Current Site</button>
+      <div class="card">
+        <h2>Capture Credentials</h2>
+        <p>Ensure you are logged into the target site.</p>
+        <button id="btn-capture" class="btn btn-primary">Capture Site Cookies</button>
       </div>
 
-      <div class="step hidden" id="step2">
-        <p>2️⃣ Set access duration</p>
+      <div class="card hidden" id="step2" style="margin-top: 15px;">
+        <h2>Generate Token</h2>
         <select id="duration">
-          <option value="2">2 minutes (testing)</option>
-          <option value="30">30 minutes</option>
-          <option value="60" selected>1 hour</option>
-          <option value="120">2 hours</option>
-          <option value="480">8 hours</option>
-          <option value="1440">24 hours</option>
+          <option value="30">30 Minutes</option>
+          <option value="60" selected>1 Hour</option>
+          <option value="120">2 Hours</option>
+          <option value="480">8 Hours</option>
+          <option value="1440">24 Hours</option>
         </select>
-        <input type="email" id="contractor-email" placeholder="Contractor's email (optional)">
-        <button id="btn-generate" class="btn btn-success">Generate Access Code</button>
+        <input type="email" id="contractor-email" placeholder="Contractor Email (Optional)">
+        <input type="text" id="allowed-ip" placeholder="IP Whitelist (Optional)">
+        <button id="btn-generate" class="btn btn-primary">Create Access Link</button>
       </div>
 
-      <div class="step hidden" id="step3">
-        <p>3️⃣ Send this code to your contractor:</p>
+      <div class="card hidden" id="step3" style="margin-top: 15px;">
+        <h2>Ready to Share</h2>
         <div class="code-box">
           <input type="text" id="access-code" readonly>
-          <button id="btn-copy" class="btn-small">📋 Copy</button>
+          <button id="btn-copy" class="btn-small">Copy</button>
         </div>
-        <p class="note">They'll paste this in the extension to get access!</p>
+        <p class="note">Send this code to your contractor.</p>
       </div>
 
       <div id="share-status" class="status hidden"></div>
-      <button id="btn-back-share" class="btn-link">← Back</button>
+      <button id="btn-back-share" class="btn-link">Back to Menu</button>
     </div>
 
     <!-- Claim Flow -->
     <div id="claim-flow" class="section hidden">
-      <h2>📥 Enter Access Code</h2>
-      <p>Paste the code your admin gave you:</p>
-
-      <input type="text" id="claim-code" placeholder="Paste access code here">
-      <button id="btn-activate" class="btn btn-success">🔓 Activate Access</button>
+      <div class="card">
+        <h2>Enter Access Code</h2>
+        <p style="font-size: 13px;">Activate your temporary session.</p>
+        <input type="text" id="claim-code" placeholder="e.g. cv_abcd1234...">
+        <button id="btn-activate" class="btn btn-primary">Unlock Session</button>
+      </div>
 
       <div id="claim-status" class="status hidden"></div>
-      <button id="btn-back-claim" class="btn-link">← Back</button>
+      <button id="btn-back-claim" class="btn-link">Back to Menu</button>
     </div>
 
     <!-- Active Session -->
     <div id="active-session" class="section hidden">
-      <h2>✅ You Have Access!</h2>
-      <div class="session-info">
-        <p><strong>Site:</strong> <span id="session-site"></span></p>
-        <p><strong>Expires:</strong> <span id="session-expires"></span></p>
+      <div class="card" style="border-color: var(--success);">
+        <h2 style="color: var(--success); display: flex; align-items: center; gap: 8px;">
+          <div class="indicator-dot"></div> Active Session
+        </h2>
+        <p><strong>Site:</strong> <span id="session-site">...</span></p>
+        <p><strong>Expires:</strong> <span id="session-expires">...</span></p>
+
+        <a id="btn-open" class="btn btn-success" target="_blank" style="margin-top: 10px;">
+          Launch Site
+        </a>
       </div>
-      <a id="btn-open" class="btn btn-success" target="_blank">🌐 Open Site (You're logged in!)</a>
-      <p class="note">Just visit the site - your session is active.</p>
     </div>
 
-    <footer>Secure • Temporary • Audited</footer>
+    <footer>
+      v3.1 • Secured by Contractor Vault
+    </footer>
   </div>
   <script src="popup.js"></script>
 </body>

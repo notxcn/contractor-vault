@@ -27,6 +27,10 @@ class GenerateTokenRequest(BaseModel):
         ...,
         description="Email of admin granting access"
     )
+    allowed_ip: Optional[str] = Field(
+        None,
+        description="Optional IP address to restrict access to"
+    )
     notes: Optional[str] = Field(
         None,
         max_length=500,
@@ -152,6 +156,7 @@ class TokenListItem(BaseModel):
     credential_name: Optional[str] = None
     target_url: Optional[str] = None
     contractor_email: str
+    allowed_ip: Optional[str] = None
     expires_at: datetime
     is_revoked: bool
     revoked_at: Optional[datetime] = None
