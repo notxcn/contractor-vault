@@ -13,6 +13,7 @@ from app.database import init_db
 from app.middleware import AuditMiddleware
 from app.routers import access_router, credentials_router, audit_router, analytics_router, activity_router, email_router, contractor_router
 from app.routers.sessions import router as sessions_router
+from app.routers.auth import router as auth_router
 
 # Configure logging
 logging.basicConfig(
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(email_router)
     app.include_router(contractor_router)
     app.include_router(sessions_router)
+    app.include_router(auth_router)
     
     # Health check
     @app.get("/health", tags=["Health"])

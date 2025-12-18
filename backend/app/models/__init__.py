@@ -6,11 +6,12 @@ from app.models.stored_session import StoredSession
 from app.models.session_activity import SessionActivity
 from app.models.detected_signup import DetectedSignup, SignupStatus
 from app.models.contractor_account import ContractorAccount, ClientLink
+from app.models.user import User, OTPCode
 
 __all__ = [
     "Credential", "SessionToken", "AuditLog", "AuditAction", 
     "StoredSession", "SessionActivity", "DetectedSignup", "SignupStatus",
-    "ContractorAccount", "ClientLink"
+    "ContractorAccount", "ClientLink", "User", "OTPCode"
 ]
 
 

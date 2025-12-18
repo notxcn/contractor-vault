@@ -52,6 +52,12 @@ class Settings(BaseSettings):
         description="Discord webhook URL for notifications (optional)"
     )
     
+    # Resend API for email (optional)
+    resend_api_key: Optional[str] = Field(
+        default=None,
+        description="Resend API key for sending OTP emails"
+    )
+    
     @field_validator("fernet_key")
     @classmethod
     def validate_fernet_key(cls, v: str) -> str:

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Key, Shield, AlertTriangle, Monitor, RotateCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Key, Shield, AlertTriangle, Monitor, RotateCw, LogOut, User } from "lucide-react";
 import { Sidebar } from "../components/Sidebar";
 import { StatCard } from "../components/StatCard";
 import { DataTable, StatusBadge } from "../components/DataTable";
@@ -94,8 +95,11 @@ interface Contractor {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("analytics");
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Data States
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -115,13 +119,34 @@ export default function Dashboard() {
 
   // Action States
   const [revoking, setRevoking] = useState<string | null>(null);
-  const adminEmail = "admin@company.com";
+  const adminEmail = userEmail || "admin@company.com";
 
+  // Auth check on mount
   useEffect(() => {
-    fetchData();
-  }, []);
+    const token = localStorage.getItem("auth_token");
+    const email = localStorage.getItem("user_email");
 
-  async function fetchData() {
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setUserEmail(email);
+    setAuthChecked(true);
+    fetchData(token);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_email");
+    router.push("/login");
+  };
+
+  async function fetchData(authToken?: string) {
+    const token = authToken || localStorage.getItem("auth_token");
+    if (!token) return;
+
+    const headers = { "Authorization": `Bearer ${token}` };
     setLoading(true);
     try {
       const results = await Promise.allSettled([
@@ -236,6 +261,18 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
+  // Show loading while checking auth
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
       <Sidebar activeTab={activeTab} onChange={setActiveTab} />
@@ -249,13 +286,31 @@ export default function Dashboard() {
               Management & Overview
             </p>
           </div>
-          <button
-            onClick={() => fetchData()}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-all border border-slate-700 shadow-sm"
-          >
-            <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh Data
-          </button>
+          <div className="flex items-center gap-4">
+            {/* User Info */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700">
+              <User className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm text-slate-300">{userEmail}</span>
+            </div>
+
+            {/* Refresh */}
+            <button
+              onClick={() => fetchData()}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-all border border-slate-700 shadow-sm"
+            >
+              <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh Data
+            </button>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition-all border border-red-500/30"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Content Area */}
