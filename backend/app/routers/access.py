@@ -443,13 +443,16 @@ async def revoke_token(
     )
     
     # Send Discord notification
-    discord = get_discord_service()
-    await discord.notify_access_revoked(
-        contractor_email=session_token.contractor_email,
-        credential_name=session_token.credential.name,
-        admin_email=payload.admin_email,
-        reason=payload.reason,
-    )
+    try:
+        discord = get_discord_service()
+        await discord.notify_access_revoked(
+            contractor_email=session_token.contractor_email,
+            credential_name=session_token.credential.name,
+            admin_email=payload.admin_email,
+            reason=payload.reason,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send discord notification: {e}")
     
     return RevokeResponse(
         success=True,

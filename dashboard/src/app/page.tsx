@@ -248,7 +248,7 @@ export default function Dashboard() {
       await fetch(`${API_URL}/api/access/revoke/${tokenId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ admin_email: adminEmail, reason: "Revoked from dashboard" }),
+        body: JSON.stringify({ token_id: tokenId, admin_email: adminEmail, reason: "Revoked from dashboard" }),
       });
       await fetchData();
     } catch (e) {
