@@ -91,7 +91,7 @@ $('btn-back-claim').onclick = () => showSection('main-menu');
 
 // Admin Link
 $('btn-admin').onclick = () => {
-    chrome.tabs.create({ url: 'https://contractor-vault-production.up.railway.app/dashboard' });
+    chrome.tabs.create({ url: 'https://contractor-vault.vercel.app' });
 };
 
 // SHARE: Step 1 - Capture
