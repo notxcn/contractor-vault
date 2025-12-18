@@ -422,19 +422,24 @@ async def revoke_token(
     session_token.revoked_by = payload.admin_email
     db.commit()
     
+    # Get resource info (handle both Credential and StoredSession tokens)
+    credential = session_token.credential
+    credential_name = credential.name if credential else "Unknown Session"
+    target_url = credential.target_url if credential else session_token.credential_id
+    
     # Log revocation
     audit_context = get_audit_context(request)
     audit_service.log(
         actor=payload.admin_email,
         action=AuditAction.REVOKE_ACCESS,
-        target_resource=session_token.credential.target_url,
+        target_resource=target_url,
         ip_address=audit_context["client_ip"],
         extra_data={
             "token_id": session_token.id,
             "contractor_email": session_token.contractor_email,
             "reason": payload.reason,
         },
-        description=f"Revoked access for {session_token.contractor_email} to {session_token.credential.name}"
+        description=f"Revoked access for {session_token.contractor_email} to {credential_name}"
     )
     
     logger.warning(
@@ -447,7 +452,7 @@ async def revoke_token(
         discord = get_discord_service()
         await discord.notify_access_revoked(
             contractor_email=session_token.contractor_email,
-            credential_name=session_token.credential.name,
+            credential_name=credential_name,
             admin_email=payload.admin_email,
             reason=payload.reason,
         )
