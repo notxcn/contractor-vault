@@ -256,3 +256,41 @@ footer {
   font-size: 10px;
   color: #666;
 }
+
+/* Capture Indicator */
+.capture-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  color: #4CAF50;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.indicator-dot {
+  width: 10px;
+  height: 10px;
+  background: #4CAF50;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}

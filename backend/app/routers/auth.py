@@ -4,7 +4,7 @@ Authentication router for email OTP login
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from app.database import get_db
 from app.config import get_settings
 from app.models.user import User, OTPCode
 from app.services.email_service import get_email_service
+from app.utils.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -216,7 +217,9 @@ async def get_me(user: User = Depends(require_auth)):
 
 
 @router.post("/password-login", response_model=PasswordLoginResponse)
+@limiter.limit("5/minute")
 async def password_login(
+    request: Request,
     payload: PasswordLoginRequest,
     db: Session = Depends(get_db)
 ):

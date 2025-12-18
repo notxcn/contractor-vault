@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Key, Shield, AlertTriangle, Monitor, RotateCw, LogOut, User } from "lucide-react";
+import { Key, Shield, AlertTriangle, Monitor, RotateCw, LogOut, User, Plus } from "lucide-react";
 import { Sidebar } from "../components/Sidebar";
 import { StatCard } from "../components/StatCard";
 import { DataTable, StatusBadge } from "../components/DataTable";
 import { ActivityTimeline } from "../components/ActivityTimeline";
 import { ShadowITPanel } from "../components/ShadowITPanel";
 import { ContractorsPanel } from "../components/ContractorsPanel";
+import { TokenCreationModal } from "../components/TokenCreationModal";
+import { ExportButtons } from "../components/ExportButtons";
+import { SearchBar } from "../components/SearchBar";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const API_URL = "https://contractor-vault-production.up.railway.app";
 
@@ -120,6 +124,36 @@ export default function Dashboard() {
   // Action States
   const [revoking, setRevoking] = useState<string | null>(null);
   const adminEmail = userEmail || "admin@company.com";
+
+  // New Feature States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showTokenModal, setShowTokenModal] = useState(false);
+  const [lastActivity, setLastActivity] = useState(Date.now());
+  const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+  // Session timeout check
+  useEffect(() => {
+    const checkTimeout = () => {
+      if (Date.now() - lastActivity > SESSION_TIMEOUT) {
+        handleLogout();
+      }
+    };
+    const interval = setInterval(checkTimeout, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [lastActivity]);
+
+  // Reset activity timer on user interaction
+  useEffect(() => {
+    const resetTimer = () => setLastActivity(Date.now());
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("keypress", resetTimer);
+    window.addEventListener("click", resetTimer);
+    return () => {
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keypress", resetTimer);
+      window.removeEventListener("click", resetTimer);
+    };
+  }, []);
 
   // Auth check on mount
   useEffect(() => {
@@ -261,6 +295,39 @@ export default function Dashboard() {
     } catch (e) { console.error(e); }
   };
 
+  const handleCreateToken = async (data: { contractor_email: string; credential_name: string; target_url: string; duration_hours: number }) => {
+    const response = await fetch(`${API_URL}/api/access/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        credential_name: data.credential_name,
+        contractor_email: data.contractor_email,
+        admin_email: adminEmail,
+        target_url: data.target_url,
+        duration_hours: data.duration_hours,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || "Failed to create token");
+    }
+    await fetchData();
+    alert("Token created successfully!");
+  };
+
+  // Filter data based on search query
+  const filteredTokens = tokens.filter(t =>
+    t.contractor_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.credential_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.target_url?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredLogs = auditLogs.filter(l =>
+    l.actor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   // Show loading while checking auth
   if (!authChecked) {
     return (
@@ -293,6 +360,18 @@ export default function Dashboard() {
               <span className="text-sm text-slate-300">{userEmail}</span>
             </div>
 
+            {/* Create Token */}
+            <button
+              onClick={() => setShowTokenModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg text-sm transition-all hover:from-cyan-400 hover:to-blue-500 shadow-lg"
+            >
+              <Plus className="h-4 w-4" />
+              Create Token
+            </button>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Refresh */}
             <button
               onClick={() => fetchData()}
@@ -312,6 +391,13 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* Token Creation Modal */}
+        <TokenCreationModal
+          isOpen={showTokenModal}
+          onClose={() => setShowTokenModal(false)}
+          onSubmit={handleCreateToken}
+        />
 
         {/* Content Area */}
         <div className="space-y-6 animate-in fade-in duration-500">

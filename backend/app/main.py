@@ -14,6 +14,8 @@ from app.middleware import AuditMiddleware
 from app.routers import access_router, credentials_router, audit_router, analytics_router, activity_router, email_router, contractor_router
 from app.routers.sessions import router as sessions_router
 from app.routers.auth import router as auth_router
+from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # Configure logging
 logging.basicConfig(
@@ -59,6 +61,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Rate limiting
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
     
     # Register routers
     app.include_router(access_router)
