@@ -341,29 +341,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-blue-500/30 transition-colors duration-200">
       <Sidebar activeTab={activeTab} onChange={setActiveTab} userEmail={userEmail} />
 
       <main className="flex-1 ml-64 p-8 overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-white capitalize">{activeTab}</h2>
-            <p className="text-slate-400 text-sm mt-1">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white capitalize transition-colors">{activeTab}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
               Management & Overview
             </p>
           </div>
           <div className="flex items-center gap-4">
             {/* User Info */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700">
-              <User className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm text-slate-300">{userEmail}</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
+              <User className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <span className="text-sm text-slate-600 dark:text-slate-300">{userEmail}</span>
             </div>
 
             {/* Create Token */}
             <button
               onClick={() => setShowTokenModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg text-sm transition-all hover:from-cyan-400 hover:to-blue-500 shadow-lg"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-700 dark:from-cyan-500 dark:to-blue-600 text-white rounded-lg text-sm transition-all hover:from-cyan-500 hover:to-blue-600 dark:hover:from-cyan-400 dark:hover:to-blue-500 shadow-lg"
             >
               <Plus className="h-4 w-4" />
               Create Token
@@ -375,7 +375,7 @@ export default function Dashboard() {
             {/* Refresh */}
             <button
               onClick={() => fetchData()}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition-all border border-slate-700 shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-sm transition-all border border-slate-200 dark:border-slate-700 shadow-sm"
             >
               <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               Refresh Data
@@ -384,7 +384,7 @@ export default function Dashboard() {
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm transition-all border border-red-500/30"
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-sm transition-all border border-red-200 dark:border-red-500/30"
             >
               <LogOut className="w-4 h-4" />
               Logout

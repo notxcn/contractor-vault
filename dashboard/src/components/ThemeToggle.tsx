@@ -7,10 +7,16 @@ export function ThemeToggle() {
     const [isDark, setIsDark] = useState(true);
 
     useEffect(() => {
-        // Check for saved preference
+        // Check for saved preference or system preference
         const saved = localStorage.getItem("theme");
-        if (saved) {
-            setIsDark(saved === "dark");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        if (saved === "dark" || (!saved && prefersDark)) {
+            setIsDark(true);
+            document.documentElement.classList.add("dark");
+        } else {
+            setIsDark(false);
+            document.documentElement.classList.remove("dark");
         }
     }, []);
 
@@ -18,8 +24,12 @@ export function ThemeToggle() {
         const newTheme = !isDark;
         setIsDark(newTheme);
         localStorage.setItem("theme", newTheme ? "dark" : "light");
-        // For now, just toggle the state. Full theme implementation would require CSS variables
-        document.documentElement.classList.toggle("light-mode", !newTheme);
+
+        if (newTheme) {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
     };
 
     return (

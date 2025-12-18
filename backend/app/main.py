@@ -46,13 +46,13 @@ def create_app() -> FastAPI:
     
     app = FastAPI(
         title="Contractor Vault API",
-        description="Secure temporary access management for contractors",
-        version="1.0.0",
-        lifespan=lifespan,
-        docs_url="/docs" if settings.debug else None,
-        redoc_url="/redoc" if settings.debug else None,
-    )
-    
+    description="Secure temporary access management for contractors",
+    version="3.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+)
+
     # CORS - allow all for development
     app.add_middleware(
         CORSMiddleware,
@@ -80,7 +80,7 @@ def create_app() -> FastAPI:
     # Health check
     @app.get("/health", tags=["Health"])
     async def health_check():
-        return {"status": "healthy", "app": settings.app_name, "version": "1.0.0"}
+        return {"status": "healthy", "app": settings.app_name, "version": "3.0.0"}
     
     @app.get("/", tags=["Root"])
     async def root():
