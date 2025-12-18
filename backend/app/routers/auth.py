@@ -49,6 +49,19 @@ class CurrentUserResponse(BaseModel):
     created_at: datetime
 
 
+class PasswordLoginRequest(BaseModel):
+    """Login with email and admin password (for when email service is not configured)."""
+    email: EmailStr = Field(..., description="Your email address")
+    password: str = Field(..., description="Admin password")
+
+
+class PasswordLoginResponse(BaseModel):
+    success: bool
+    token: Optional[str] = None
+    user: Optional[dict] = None
+    message: str
+
+
 # ===== HELPERS =====
 
 def create_auth_token(user_id: str, email: str) -> str:
@@ -199,6 +212,57 @@ async def get_me(user: User = Depends(require_auth)):
         id=user.id,
         email=user.email,
         created_at=user.created_at
+    )
+
+
+@router.post("/password-login", response_model=PasswordLoginResponse)
+async def password_login(
+    payload: PasswordLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """Login with email and admin password (fallback when email service is not configured)."""
+    settings = get_settings()
+    email = payload.email.lower().strip()
+    password = payload.password
+    
+    # Check if admin password is configured
+    admin_password = getattr(settings, 'admin_password', None)
+    if not admin_password:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password login not configured. Please set ADMIN_PASSWORD environment variable."
+        )
+    
+    # Verify password
+    if password != admin_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid password"
+        )
+    
+    # Get or create user
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(
+            id=User.generate_id(),
+            email=email,
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(user)
+    
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
+    
+    # Create token
+    token = create_auth_token(user.id, user.email)
+    
+    logger.info(f"User {email} authenticated via password")
+    
+    return PasswordLoginResponse(
+        success=True,
+        token=token,
+        user={"id": user.id, "email": user.email},
+        message="Authentication successful"
     )
 
 

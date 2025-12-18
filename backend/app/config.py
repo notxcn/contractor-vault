@@ -58,6 +58,12 @@ class Settings(BaseSettings):
         description="Resend API key for sending OTP emails"
     )
     
+    # Admin password for simple login (optional fallback)
+    admin_password: Optional[str] = Field(
+        default=None,
+        description="Admin password for dashboard login (fallback when email not configured)"
+    )
+    
     @field_validator("fernet_key")
     @classmethod
     def validate_fernet_key(cls, v: str) -> str:
