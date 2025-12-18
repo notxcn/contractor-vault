@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, X, Loader2, Key, Mail, Clock, Globe, Shield } from "lucide-react";
+import { Plus, X, Loader2, Key, Mail, Clock, Globe, Shield, Flame } from "lucide-react";
 
 interface TokenCreationModalProps {
     isOpen: boolean;
@@ -15,6 +15,7 @@ interface TokenCreationData {
     target_url: string;
     duration_hours: number;
     allowed_ip?: string;
+    is_one_time?: boolean;
 }
 
 export function TokenCreationModal({ isOpen, onClose, onSubmit }: TokenCreationModalProps) {
@@ -144,6 +145,26 @@ export function TokenCreationModal({ isOpen, onClose, onSubmit }: TokenCreationM
                             placeholder="e.g. 203.0.113.1"
                             className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         />
+                    </div>
+
+                    <div>
+                        <label className="flex items-center space-x-3 p-3 bg-slate-700/30 border border-slate-600 rounded-lg cursor-pointer hover:bg-slate-700/50 transition">
+                            <input
+                                type="checkbox"
+                                checked={formData.is_one_time || false}
+                                onChange={(e) => setFormData({ ...formData, is_one_time: e.target.checked })}
+                                className="w-5 h-5 bg-slate-700 border-slate-500 rounded text-cyan-500 focus:ring-cyan-500"
+                            />
+                            <div className="flex-1">
+                                <span className="block text-sm font-medium text-slate-200">
+                                    <Flame className="inline h-4 w-4 mr-2 text-orange-500" />
+                                    Burn-on-View
+                                </span>
+                                <span className="block text-xs text-slate-400 mt-1">
+                                    Token deletes itself after first successful use
+                                </span>
+                            </div>
+                        </label>
                     </div>
 
                     {error && (

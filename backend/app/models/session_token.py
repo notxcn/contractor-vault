@@ -75,6 +75,14 @@ class SessionToken(Base):
         nullable=True,
         comment="Optional IP address restriction"
     )
+
+    # Burn-on-View (One-time use)
+    is_one_time: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="If true, token is invalid after first use"
+    )
     
     # Token validity
     expires_at: Mapped[datetime] = mapped_column(

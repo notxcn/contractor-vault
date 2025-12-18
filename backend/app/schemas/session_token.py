@@ -36,6 +36,12 @@ class GenerateTokenRequest(BaseModel):
         max_length=500,
         description="Optional notes about why access was granted"
     )
+    is_one_time: bool = Field(
+        False,
+        description="If true, token is valid for only one use"
+    )
+
+
 
 
 class GenerateTokenResponse(BaseModel):
@@ -157,6 +163,7 @@ class TokenListItem(BaseModel):
     target_url: Optional[str] = None
     contractor_email: str
     allowed_ip: Optional[str] = None
+    is_one_time: bool = False
     expires_at: datetime
     is_revoked: bool
     revoked_at: Optional[datetime] = None

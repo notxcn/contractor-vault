@@ -153,6 +153,7 @@ async def generate_session_token(
         expires_at=expires_at,
         created_by=token_request.admin_email,
         allowed_ip=token_request.allowed_ip,
+        is_one_time=token_request.is_one_time,
     )
     
     db.add(session_token)
@@ -235,6 +236,13 @@ async def claim_session(
                 detail="Token has expired"
             )
 
+        # Burn-on-View Check (Pre-check)
+        if session_token.is_one_time and session_token.use_count > 0:
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="This is a one-time use token and it has already been accessed."
+            )
+
         # IP Whitelist Validation
         if session_token.allowed_ip:
             ip_address = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown")
@@ -301,6 +309,13 @@ async def claim_session(
         # Update token usage
         session_token.use_count += 1
         session_token.last_used_at = datetime.now(timezone.utc)
+        
+        # Burn-on-View Logic
+        if session_token.is_one_time:
+            session_token.is_revoked = True
+            session_token.revoked_at = datetime.now(timezone.utc)
+            session_token.revoked_by = "system:burn_on_view"
+            
         db.commit()
         
         # Audit log

@@ -168,6 +168,7 @@ $('btn-generate').onclick = async () => {
                 contractor_email: email,
                 duration_minutes: duration,
                 allowed_ip: $('allowed-ip').value.trim() || null,
+                is_one_time: $('is-one-time').checked,
                 admin_email: 'admin@contractor-vault.local',
             }),
         });
