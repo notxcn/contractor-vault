@@ -275,7 +275,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
-      <Sidebar activeTab={activeTab} onChange={setActiveTab} />
+      <Sidebar activeTab={activeTab} onChange={setActiveTab} userEmail={userEmail} />
 
       <main className="flex-1 ml-64 p-8 overflow-y-auto">
         {/* Header */}

@@ -11,9 +11,10 @@ import {
 interface SidebarProps {
     activeTab: string;
     onChange: (tab: any) => void;
+    userEmail?: string | null;
 }
 
-export function Sidebar({ activeTab, onChange }: SidebarProps) {
+export function Sidebar({ activeTab, onChange, userEmail }: SidebarProps) {
     const menuItems = [
         { id: "analytics", label: "Analytics", icon: PieChart },
         { id: "sessions", label: "Sessions", icon: MonitorPlay },
@@ -23,6 +24,13 @@ export function Sidebar({ activeTab, onChange }: SidebarProps) {
         { id: "contractors", label: "Contractors", icon: Users },
         { id: "logs", label: "Audit Trail", icon: FileText },
     ];
+
+    // Get initials from email
+    const getInitials = (email: string | null | undefined) => {
+        if (!email) return "US";
+        const parts = email.split("@")[0];
+        return parts.slice(0, 2).toUpperCase();
+    };
 
     return (
         <div className="w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col h-screen fixed left-0 top-0 overflow-y-auto">
@@ -44,8 +52,8 @@ export function Sidebar({ activeTab, onChange }: SidebarProps) {
                             key={item.id}
                             onClick={() => onChange(item.id)}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-                                    ? "bg-blue-600/10 text-blue-400 border border-blue-600/20 shadow-sm"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                ? "bg-blue-600/10 text-blue-400 border border-blue-600/20 shadow-sm"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                                 }`}
                         >
                             <Icon className={`h-4 w-4 ${isActive ? "text-blue-400" : "text-slate-500"}`} />
@@ -57,15 +65,16 @@ export function Sidebar({ activeTab, onChange }: SidebarProps) {
 
             <div className="mt-8 pt-4 border-t border-slate-800">
                 <div className="flex items-center gap-3 px-2">
-                    <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400">
-                        AD
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-xs font-bold text-white">
+                        {getInitials(userEmail)}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">Admin User</p>
-                        <p className="text-xs text-slate-500 truncate">admin@company.com</p>
+                        <p className="text-sm font-medium text-white truncate">Logged In</p>
+                        <p className="text-xs text-slate-400 truncate">{userEmail || "Not logged in"}</p>
                     </div>
                 </div>
             </div>
         </div>
     );
 }
+
