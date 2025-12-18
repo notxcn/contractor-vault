@@ -76,6 +76,22 @@ def create_app() -> FastAPI:
     app.include_router(contractor_router)
     app.include_router(sessions_router)
     app.include_router(auth_router)
+
+    # Temporary Migration Endpoint (Auto-Repair)
+    @app.get("/migrate-db")
+    def migrate_db():
+        from sqlalchemy import text
+        from app.database import engine
+        try:
+            with engine.connect() as conn:
+                # Check backend type for syntax if needed, but standard SQL works for Add Column
+                # SQLite doesn't support "IF NOT EXISTS" in ADD COLUMN usually, so we try/except
+                conn.execute(text("ALTER TABLE session_tokens ADD COLUMN is_one_time BOOLEAN DEFAULT FALSE NOT NULL"))
+                conn.commit()
+            return {"status": "success", "message": "Migration completed: Added is_one_time column"}
+        except Exception as e:
+            # If column exists, it logs error but that's fine (idempotent-ish)
+            return {"status": "error", "message": str(e)}
     
     # Health check
     @app.get("/health", tags=["Health"])
