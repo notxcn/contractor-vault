@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Contractor Vault",
-    "version": "3.0",
+    "version": "3.1",
     "description": "Secure temporary credential and session access for contractors",
     "icons": {
         "16": "icons/icon16.png",
