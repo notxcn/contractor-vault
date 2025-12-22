@@ -346,7 +346,7 @@ export default function Dashboard() {
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 font-sans selection:bg-blue-500/30 transition-colors duration-200">
       <Sidebar activeTab={activeTab} onChange={setActiveTab} userEmail={userEmail} />
 
-      <main className="flex-1 ml-64 p-8 overflow-y-auto">
+      <main className="flex-1 ml-64 p-8 h-screen overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
