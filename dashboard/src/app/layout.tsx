@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Contractor Vault | Enterprise Security",
-  description: "Secure session management for contractors",
+  title: "ShadowKey | Zero Trust Access",
+  description: "Secure access management for external teams and contractors",
 };
 
 export default function RootLayout({

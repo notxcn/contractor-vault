@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Contractor Vault",
-    "version": "3.1",
-    "description": "Secure temporary credential and session access for contractors",
+    "name": "ShadowKey - Zero Trust Access",
+    "version": "4.0.0",
+    "description": "Secure access and secret management for the extended workforce",
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",

@@ -3,7 +3,7 @@
  * Added server-side validation (Kill Switch polling)
  */
 
-const API_URL = 'https://contractor-vault-production.up.railway.app';
+const BASE_URL = 'https://contractor-vault-production.up.railway.app';
 
 // ===== UTILITY FUNCTIONS =====
 
@@ -268,6 +268,32 @@ async function captureCookies(input) {
     return cookieData;
 }
 
+
+// ===== DEVICE FINGERPRINTING =====
+
+async function getDeviceContext() {
+    try {
+        const platform = await chrome.runtime.getPlatformInfo();
+        const userAgent = navigator.userAgent;
+
+        // Basic fingerprint
+        return {
+            os: platform.os,
+            arch: platform.arch,
+            userAgent: userAgent,
+            screen: {
+                width: 1920, // Cannot reliably get from service worker
+                height: 1080
+            },
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            language: navigator.language
+        };
+    } catch (e) {
+        console.warn('[CV] Device context error:', e);
+        return {};
+    }
+}
+
 async function captureAndStore(domain, name, adminEmail) {
     console.log('[CV] captureAndStore called:', domain, name, adminEmail);
 
@@ -278,12 +304,16 @@ async function captureAndStore(domain, name, adminEmail) {
     }
 
     const targetUrl = `https://${extractDomain(domain)}`;
+    const deviceContext = await getDeviceContext();
 
     console.log('[CV] Storing session:', { name, targetUrl, cookieCount: cookies.length });
 
     const response = await fetch(`${API_URL}/api/sessions/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Device-Context': JSON.stringify(deviceContext)
+        },
         body: JSON.stringify({
             name,
             target_url: targetUrl,
@@ -346,9 +376,14 @@ async function injectCookies(cookies, targetUrl) {
 async function claimSession(token) {
     console.log('[CV] Claiming session with token:', token.substring(0, 10) + '...');
 
+    const deviceContext = await getDeviceContext();
+
     const response = await fetch(`${API_URL}/api/sessions/claim/${token}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Device-Context': JSON.stringify(deviceContext)
+        },
     });
 
     console.log('[CV] Claim response status:', response.status);

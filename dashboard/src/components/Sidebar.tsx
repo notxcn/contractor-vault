@@ -18,9 +18,11 @@ export function Sidebar({ activeTab, onChange, userEmail }: SidebarProps) {
     const menuItems = [
         { id: "analytics", label: "Analytics", icon: PieChart },
         { id: "sessions", label: "Sessions", icon: MonitorPlay },
+        { id: "secrets", label: "Secrets", icon: FileText },
         { id: "tokens", label: "Tokens", icon: Key },
-        { id: "activity", label: "Activity Logs", icon: Activity },
-        { id: "shadowit", label: "Shadow IT", icon: ShieldAlert },
+        { id: "devices", label: "Device Trust", icon: ShieldAlert },
+        { id: "shadowit", label: "Shadow IT", icon: Activity },
+        { id: "passkeys", label: "Passkeys", icon: Key },
         { id: "contractors", label: "Contractors", icon: Users },
         { id: "logs", label: "Audit Trail", icon: FileText },
     ];
@@ -39,7 +41,7 @@ export function Sidebar({ activeTab, onChange, userEmail }: SidebarProps) {
                     <Key className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                    <h1 className="font-bold text-lg text-slate-900 dark:text-white leading-tight">Contractor<br /><span className="text-blue-600 dark:text-blue-400">Vault</span></h1>
+                    <h1 className="font-bold text-lg text-slate-900 dark:text-white leading-tight">Shadow<span className="text-blue-600 dark:text-blue-400">Key</span></h1>
                 </div>
             </div>
 

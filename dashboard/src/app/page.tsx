@@ -13,6 +13,9 @@ import { TokenCreationModal } from "../components/TokenCreationModal";
 import { ExportButtons } from "../components/ExportButtons";
 import { SearchBar } from "../components/SearchBar";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { SecretsPanel } from "../components/SecretsPanel";
+import { DevicesPanel } from "../components/DevicesPanel";
+import { PasskeysPanel } from "../components/PasskeysPanel";
 
 const API_URL = "https://contractor-vault-production.up.railway.app";
 
@@ -450,6 +453,21 @@ export default function Dashboard() {
                 </tr>
               )}
             />
+          )}
+
+          {/* Secrets */}
+          {activeTab === "secrets" && (
+            <SecretsPanel />
+          )}
+
+          {/* Devices */}
+          {activeTab === "devices" && (
+            <DevicesPanel />
+          )}
+
+          {/* Passkeys */}
+          {activeTab === "passkeys" && (
+            <PasskeysPanel />
           )}
 
           {/* Tokens */}

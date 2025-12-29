@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.middleware import AuditMiddleware
-from app.routers import access_router, credentials_router, audit_router, analytics_router, activity_router, email_router, contractor_router
+from app.routers import access_router, credentials_router, audit_router, analytics_router, activity_router, email_router, contractor_router, passkey_router, device_router, secrets_router, discovery_router
 from app.routers.sessions import router as sessions_router
 from app.routers.auth import router as auth_router
 from app.utils.rate_limiter import limiter, rate_limit_exceeded_handler
@@ -45,9 +45,9 @@ def create_app() -> FastAPI:
     settings = get_settings()
     
     app = FastAPI(
-        title="Contractor Vault API",
-    description="Secure temporary access management for contractors",
-    version="3.0.0",
+        title="ShadowKey API",
+    description="Secure temporary access management for the extended workforce",
+    version="4.0.0",
     lifespan=lifespan,
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
@@ -76,13 +76,19 @@ def create_app() -> FastAPI:
     app.include_router(contractor_router)
     app.include_router(sessions_router)
     app.include_router(auth_router)
+    
+    # New acquisition features
+    app.include_router(passkey_router)
+    app.include_router(device_router)
+    app.include_router(secrets_router)
+    app.include_router(discovery_router)
 
 
     
     # Health check
     @app.get("/health", tags=["Health"])
     async def health_check():
-        return {"status": "healthy", "app": settings.app_name, "version": "3.0.0"}
+        return {"status": "healthy", "app": settings.app_name, "version": "4.0.0"}
     
     @app.get("/", tags=["Root"])
     async def root():

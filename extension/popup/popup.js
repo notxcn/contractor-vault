@@ -1,9 +1,10 @@
+```javascript
 /**
  * Contractor Vault - Popup v4
  * Properly fixed error handling
  */
 
-const API_URL = 'https://contractor-vault-production.up.railway.app';
+const BASE_URL = 'https://contractor-vault-production.up.railway.app';
 
 // State
 let capturedSessionId = null;
@@ -48,7 +49,7 @@ function showSection(id) {
 function showStatus(id, message, type) {
     const el = $(id);
     el.textContent = String(message);
-    el.className = `status ${type}`;
+    el.className = `status ${ type } `;
     el.classList.remove('hidden');
 }
 
@@ -94,6 +95,11 @@ $('btn-admin').onclick = () => {
     chrome.tabs.create({ url: 'https://contractor-vault.vercel.app' });
 };
 
+// Share Secret Link
+$('btn-share-secret').onclick = () => {
+    chrome.tabs.create({ url: 'https://contractor-vault.vercel.app/?tab=secrets' });
+};
+
 // SHARE: Step 1 - Capture
 $('btn-capture').onclick = async () => {
     const btn = $('btn-capture');
@@ -113,7 +119,7 @@ $('btn-capture').onclick = async () => {
         const response = await chrome.runtime.sendMessage({
             type: 'CAPTURE_AND_STORE',
             domain: domain,
-            name: `${domain} Session`,
+            name: `${ domain } Session`,
             adminEmail: 'admin@contractor-vault.local',
         });
 
@@ -127,7 +133,7 @@ $('btn-capture').onclick = async () => {
         capturedSessionId = response.data.id;
         console.log('Session captured with ID:', capturedSessionId);
 
-        showStatus('share-status', `✅ Captured ${response.data.cookie_count} cookies from ${domain}`, 'success');
+        showStatus('share-status', `✅ Captured ${ response.data.cookie_count } cookies from ${ domain } `, 'success');
 
         // Move to step 2
         $('step1').classList.add('hidden');
@@ -135,7 +141,7 @@ $('btn-capture').onclick = async () => {
 
     } catch (error) {
         console.error('Capture error:', error);
-        showStatus('share-status', `❌ ${error.message || error}`, 'error');
+        showStatus('share-status', `❌ ${ error.message || error } `, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Capture Current Site';
@@ -160,7 +166,7 @@ $('btn-generate').onclick = async () => {
 
         console.log('Generating token for session:', capturedSessionId);
 
-        const response = await fetch(`${API_URL}/api/sessions/generate-token`, {
+        const response = await fetch(`${ API_URL } /api/sessions / generate - token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -176,7 +182,7 @@ $('btn-generate').onclick = async () => {
         console.log('Token response status:', response.status);
 
         if (!response.ok) {
-            let errorMessage = `Server error (${response.status})`;
+            let errorMessage = `Server error(${ response.status })`;
             try {
                 const errorData = await response.json();
                 console.log('Error response:', errorData);
@@ -201,7 +207,7 @@ $('btn-generate').onclick = async () => {
 
     } catch (error) {
         console.error('Generate error:', error);
-        showStatus('share-status', `❌ ${error.message || error}`, 'error');
+        showStatus('share-status', `❌ ${ error.message || error } `, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Generate Access Code';
@@ -240,7 +246,7 @@ $('btn-activate').onclick = async () => {
             throw new Error(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg);
         }
 
-        showStatus('claim-status', `✅ ${response.data.message || 'Access activated!'}`, 'success');
+        showStatus('claim-status', `✅ ${ response.data.message || 'Access activated!' } `, 'success');
 
         setTimeout(() => {
             $('session-site').textContent = response.data.session_name;
@@ -251,7 +257,7 @@ $('btn-activate').onclick = async () => {
 
     } catch (error) {
         console.error('Claim error:', error);
-        showStatus('claim-status', `❌ ${error.message || error}`, 'error');
+        showStatus('claim-status', `❌ ${ error.message || error } `, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = '🔓 Activate Access';

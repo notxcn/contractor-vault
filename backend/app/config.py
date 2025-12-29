@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     )
     
     # Application settings
-    app_name: str = Field(default="ContractorVault")
+    app_name: str = Field(default="ShadowKey")
     debug: bool = Field(default=False)
     log_level: str = Field(default="INFO")
     

@@ -143,7 +143,14 @@ class SessionToken(Base):
         """Check if token is currently valid (not expired and not revoked)."""
         if self.is_revoked:
             return False
-        return datetime.now(timezone.utc) < self.expires_at
+            
+        now = datetime.now(timezone.utc)
+        expires_at = self.expires_at
+        
+        if expires_at.tzinfo is None:
+            now = now.replace(tzinfo=None)
+            
+        return now < expires_at
     
     def __repr__(self) -> str:
         status = "valid" if self.is_valid() else "invalid"
