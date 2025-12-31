@@ -79,7 +79,27 @@ def init_db():
     """
     # Import all models to register them with Base
     from app.models import credential, session_token, audit_log
+    from app.models.user import User, OTPCode
     
     logger.info("Creating database tables...")
     Base.metadata.create_all(bind=engine)
+    
+    # Manual migration: Add password_hash column to users table if it doesn't exist (for PostgreSQL)
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            # Check if column exists (PostgreSQL)
+            result = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'users' AND column_name = 'password_hash'
+            """))
+            if result.fetchone() is None:
+                logger.info("Adding password_hash column to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR"))
+                conn.commit()
+                logger.info("password_hash column added successfully.")
+    except Exception as e:
+        logger.warning(f"Migration check skipped (might be SQLite): {e}")
+    
     logger.info("Database tables created successfully.")
