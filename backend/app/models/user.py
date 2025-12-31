@@ -13,6 +13,7 @@ class User(Base):
     
     id = Column(String, primary_key=True)
     email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=True)  # Bcrypt hash for per-user passwords
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
@@ -20,6 +21,18 @@ class User(Base):
     @classmethod
     def generate_id(cls) -> str:
         return f"user_{secrets.token_hex(12)}"
+    
+    def set_password(self, password: str) -> None:
+        """Hash and set the user's password."""
+        import bcrypt
+        self.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    
+    def verify_password(self, password: str) -> bool:
+        """Verify password against stored hash."""
+        if not self.password_hash:
+            return False
+        import bcrypt
+        return bcrypt.checkpw(password.encode(), self.password_hash.encode())
 
 
 class OTPCode(Base):

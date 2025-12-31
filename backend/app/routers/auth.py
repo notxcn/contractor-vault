@@ -223,35 +223,44 @@ async def password_login(
     payload: PasswordLoginRequest,
     db: Session = Depends(get_db)
 ):
-    """Login with email and admin password (fallback when email service is not configured)."""
+    """Login with email and password."""
     settings = get_settings()
     email = payload.email.lower().strip()
     password = payload.password
     
-    # Check if admin password is configured
-    admin_password = getattr(settings, 'admin_password', None)
-    if not admin_password:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Password login not configured. Please set ADMIN_PASSWORD environment variable."
-        )
-    
-    # Verify password
-    if password != admin_password:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid password"
-        )
-    
-    # Get or create user
+    # First, try to find user with per-user password
     user = db.query(User).filter(User.email == email).first()
-    if not user:
-        user = User(
-            id=User.generate_id(),
-            email=email,
-            created_at=datetime.now(timezone.utc)
-        )
-        db.add(user)
+    
+    if user and user.password_hash:
+        # User has a per-user password set - verify it
+        if not user.verify_password(password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+    else:
+        # Fall back to admin password for backwards compatibility
+        admin_password = getattr(settings, 'admin_password', None)
+        if not admin_password:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        if password != admin_password:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password"
+            )
+        
+        # Create user if doesn't exist (admin password flow)
+        if not user:
+            user = User(
+                id=User.generate_id(),
+                email=email,
+                created_at=datetime.now(timezone.utc)
+            )
+            db.add(user)
     
     user.last_login = datetime.now(timezone.utc)
     db.commit()
@@ -269,7 +278,72 @@ async def password_login(
     )
 
 
+class RegisterRequest(BaseModel):
+    """Register a new user with email and password."""
+    email: EmailStr = Field(..., description="Your email address")
+    password: str = Field(..., min_length=8, description="Password (min 8 characters)")
+
+
+class RegisterResponse(BaseModel):
+    success: bool
+    token: Optional[str] = None
+    user: Optional[dict] = None
+    message: str
+
+
+@router.post("/register", response_model=RegisterResponse)
+@limiter.limit("3/minute")
+async def register(
+    request: Request,
+    payload: RegisterRequest,
+    db: Session = Depends(get_db)
+):
+    """Register a new user with email and password."""
+    email = payload.email.lower().strip()
+    password = payload.password
+    
+    # Check if user already exists with a password
+    existing_user = db.query(User).filter(User.email == email).first()
+    
+    if existing_user and existing_user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email already exists. Please login instead."
+        )
+    
+    # Create or update user with password
+    if existing_user:
+        # User exists but has no password (created via OTP) - add password
+        user = existing_user
+    else:
+        # Create new user
+        user = User(
+            id=User.generate_id(),
+            email=email,
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(user)
+    
+    # Set password
+    user.set_password(password)
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
+    
+    # Create token
+    token = create_auth_token(user.id, user.email)
+    
+    logger.info(f"User {email} registered successfully")
+    
+    return RegisterResponse(
+        success=True,
+        token=token,
+        user={"id": user.id, "email": user.email},
+        message="Account created successfully"
+    )
+
+
 @router.post("/logout")
 async def logout():
     """Logout - client should clear token."""
     return {"success": True, "message": "Logged out successfully"}
+
