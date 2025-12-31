@@ -84,22 +84,41 @@ def init_db():
     logger.info("Creating database tables...")
     Base.metadata.create_all(bind=engine)
     
-    # Manual migration: Add password_hash column to users table if it doesn't exist (for PostgreSQL)
+    # Manual migration: Add password_hash column to users table if it doesn't exist
     try:
         from sqlalchemy import text
+        settings = get_settings()
+        
         with engine.connect() as conn:
-            # Check if column exists (PostgreSQL)
-            result = conn.execute(text("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'users' AND column_name = 'password_hash'
-            """))
-            if result.fetchone() is None:
-                logger.info("Adding password_hash column to users table...")
-                conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR"))
-                conn.commit()
-                logger.info("password_hash column added successfully.")
+            # Check database type and use appropriate method
+            if settings.database_url.startswith("sqlite"):
+                # SQLite: Use PRAGMA table_info
+                result = conn.execute(text("PRAGMA table_info(users)"))
+                columns = [row[1] for row in result.fetchall()]
+                
+                if 'password_hash' not in columns:
+                    logger.info("Adding password_hash column to users table (SQLite)...")
+                    conn.execute(text("ALTER TABLE users ADD COLUMN password_hash TEXT"))
+                    conn.commit()
+                    logger.info("password_hash column added successfully.")
+                else:
+                    logger.info("password_hash column already exists.")
+            else:
+                # PostgreSQL: Use information_schema
+                result = conn.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'password_hash'
+                """))
+                if result.fetchone() is None:
+                    logger.info("Adding password_hash column to users table (PostgreSQL)...")
+                    conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR"))
+                    conn.commit()
+                    logger.info("password_hash column added successfully.")
+                else:
+                    logger.info("password_hash column already exists.")
     except Exception as e:
-        logger.warning(f"Migration check skipped (might be SQLite): {e}")
+        logger.warning(f"Migration check failed: {e}")
     
     logger.info("Database tables created successfully.")
+
