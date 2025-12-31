@@ -9,45 +9,56 @@ from fastapi import APIRouter, Depends
 
 from app.database import get_db
 from app.models import SessionToken, AuditLog, Credential, AuditAction
+from app.routers.auth import require_auth
+from app.models.user import User
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
 
 @router.get("/summary")
-async def get_analytics_summary(db: Session = Depends(get_db)):
+async def get_analytics_summary(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_auth)
+):
     """
-    Get a summary of key metrics for the dashboard.
+    Get a summary of key metrics for the current user.
     """
     now = datetime.now(timezone.utc)
     last_24h = now - timedelta(hours=24)
-    last_7d = now - timedelta(days=7)
-    last_30d = now - timedelta(days=30)
     
-    # Token stats
-    total_tokens = db.query(SessionToken).count()
-    active_tokens = db.query(SessionToken).filter(
+    # Token stats - filter by current user
+    user_tokens = db.query(SessionToken).filter(
+        SessionToken.created_by == current_user.email
+    )
+    
+    total_tokens = user_tokens.count()
+    active_tokens = user_tokens.filter(
         SessionToken.is_revoked == False,
         SessionToken.expires_at > now
     ).count()
     revoked_tokens = db.query(SessionToken).filter(
+        SessionToken.created_by == current_user.email,
         SessionToken.is_revoked == True
     ).count()
     
-    # Credential stats
+    # Credential stats (shared across all users for now)
     total_credentials = db.query(Credential).filter(Credential.is_active == True).count()
     
-    # Activity stats (last 24h)
+    # Activity stats for current user (last 24h)
     grants_24h = db.query(AuditLog).filter(
+        AuditLog.actor == current_user.email,
         AuditLog.action == AuditAction.GRANT_ACCESS,
         AuditLog.timestamp >= last_24h
     ).count()
     
     injections_24h = db.query(AuditLog).filter(
+        AuditLog.actor == current_user.email,
         AuditLog.action == AuditAction.INJECTION_SUCCESS,
         AuditLog.timestamp >= last_24h
     ).count()
     
     revokes_24h = db.query(AuditLog).filter(
+        AuditLog.actor == current_user.email,
         AuditLog.action == AuditAction.REVOKE_ACCESS,
         AuditLog.timestamp >= last_24h
     ).count()
@@ -57,7 +68,7 @@ async def get_analytics_summary(db: Session = Depends(get_db)):
             "total": total_tokens,
             "active": active_tokens,
             "revoked": revoked_tokens,
-            "expired": total_tokens - active_tokens - revoked_tokens,
+            "expired": max(0, total_tokens - active_tokens - revoked_tokens),
         },
         "credentials": {
             "total": total_credentials,
@@ -73,15 +84,18 @@ async def get_analytics_summary(db: Session = Depends(get_db)):
 @router.get("/top-contractors")
 async def get_top_contractors(
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_auth),
     limit: int = 10
 ):
     """
-    Get most active contractors by token count.
+    Get most active contractors for tokens created by the current user.
     """
     results = db.query(
         SessionToken.contractor_email,
         func.count(SessionToken.id).label("token_count"),
         func.sum(SessionToken.use_count).label("total_uses"),
+    ).filter(
+        SessionToken.created_by == current_user.email
     ).group_by(
         SessionToken.contractor_email
     ).order_by(

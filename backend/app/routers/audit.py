@@ -14,6 +14,8 @@ from app.database import get_db
 from app.models.audit_log import AuditAction
 from app.schemas.audit_log import AuditLogResponse, AuditLogListResponse
 from app.services.audit_service import AuditService
+from app.routers.auth import require_auth
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -32,37 +34,27 @@ def get_audit_service(db: Session = Depends(get_db)) -> AuditService:
 )
 async def list_audit_logs(
     audit_service: Annotated[AuditService, Depends(get_audit_service)],
-    actor: Optional[str] = Query(None, description="Filter by actor email"),
+    current_user: User = Depends(require_auth),
     action: Optional[AuditAction] = Query(None, description="Filter by action type"),
     start_date: Optional[datetime] = Query(None, description="Start of date range"),
     end_date: Optional[datetime] = Query(None, description="End of date range"),
     limit: int = Query(100, le=1000, description="Maximum results"),
 ):
     """
-    Query audit logs with optional filters.
+    Query audit logs for the current authenticated user.
+    Users can only see logs where they are the actor.
     
     Supports filtering by:
-    - Actor (who performed the action)
     - Action type (GRANT_ACCESS, REVOKE_ACCESS, etc.)
     - Date range
     """
-    if actor:
-        logs = audit_service.get_logs_by_actor(
-            actor=actor,
-            start_date=start_date,
-            end_date=end_date,
-            action_filter=action
-        )
-    else:
-        logs = audit_service.get_recent_logs(limit=limit)
-        
-        # Apply additional filters manually if needed
-        if action:
-            logs = [log for log in logs if log.action == action]
-        if start_date:
-            logs = [log for log in logs if log.timestamp >= start_date]
-        if end_date:
-            logs = [log for log in logs if log.timestamp <= end_date]
+    # Always filter by current user's email - users only see their own activity
+    logs = audit_service.get_logs_by_actor(
+        actor=current_user.email,
+        start_date=start_date,
+        end_date=end_date,
+        action_filter=action
+    )
     
     return AuditLogListResponse(
         logs=logs[:limit],

@@ -26,6 +26,8 @@ from app.services.token_service import get_token_service, TokenService
 from app.services.audit_service import AuditService
 from app.services.discord_webhook import get_discord_service
 from app.middleware.audit_middleware import get_audit_context
+from app.routers.auth import require_auth
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +42,17 @@ def get_audit_service(db: Session = Depends(get_db)) -> AuditService:
 @router.get(
     "/tokens",
     response_model=list[TokenListItem],
-    summary="List all access tokens with their status"
+    summary="List access tokens created by the current user"
 )
 async def list_tokens(
     db: Annotated[Session, Depends(get_db)],
+    current_user: User = Depends(require_auth),
     status_filter: str | None = None,
     skip: int = 0,
     limit: int = 100,
 ):
     """
-    List all session tokens for the admin dashboard.
+    List session tokens created by the current authenticated user.
     
     Args:
         status_filter: Optional filter - 'active', 'expired', 'revoked', or None for all
@@ -57,9 +60,12 @@ async def list_tokens(
         limit: Maximum number of records to return
     
     Returns:
-        List of tokens with their current status
+        List of tokens created by the current user
     """
-    query = db.query(SessionToken)
+    # Filter by current user's email - users only see their own tokens
+    query = db.query(SessionToken).filter(
+        SessionToken.created_by == current_user.email
+    )
     
     now = datetime.now(timezone.utc)
     
