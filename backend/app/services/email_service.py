@@ -82,6 +82,44 @@ class EmailService:
         except Exception as e:
             logger.error(f"Email send error: {e}")
             return False
+    
+    async def send_email(self, to_email: str, subject: str, html_content: str) -> bool:
+        """Send a generic email with custom subject and HTML content."""
+        if not self.api_key:
+            logger.error("Resend API key not configured")
+            return False
+        
+        payload = {
+            "from": "ShadowKey <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_content
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.RESEND_API_URL,
+                    json=payload,
+                    headers=headers,
+                    timeout=10.0
+                )
+                
+                if response.status_code == 200:
+                    logger.info(f"Email sent to {to_email}: {subject}")
+                    return True
+                else:
+                    logger.error(f"Failed to send email: {response.status_code} - {response.text}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Email send error: {e}")
+            return False
 
 
 def get_email_service() -> EmailService:

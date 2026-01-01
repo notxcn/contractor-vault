@@ -490,3 +490,51 @@ async def reset_password(
         success=True,
         message="Password reset successful! You can now log in with your new password."
     )
+
+
+# ===== ADMIN DIRECT PASSWORD RESET =====
+
+class AdminResetRequest(BaseModel):
+    """Admin password reset - for when email is not working."""
+    email: EmailStr = Field(..., description="User's email address")
+    new_password: str = Field(..., min_length=8, description="New password (min 8 characters)")
+    admin_secret: str = Field(..., description="Admin secret key")
+
+
+@router.post("/admin-reset-password")
+async def admin_reset_password(
+    request: Request,
+    payload: AdminResetRequest,
+    db: Session = Depends(get_db)
+):
+    """Admin direct password reset - bypasses email verification."""
+    settings = get_settings()
+    
+    # Verify admin secret
+    expected_secret = getattr(settings, 'admin_secret', 'SHADOWKEY_ADMIN_2024')
+    if payload.admin_secret != expected_secret:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid admin secret"
+        )
+    
+    # Find user
+    email = payload.email.lower().strip()
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with email {email} not found"
+        )
+    
+    # Set new password
+    user.set_password(payload.new_password)
+    db.commit()
+    
+    logger.info(f"Admin password reset successful for {user.email}")
+    
+    return {
+        "success": True,
+        "message": f"Password reset successful for {email}! User can now log in with the new password."
+    }
