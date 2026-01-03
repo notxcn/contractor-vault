@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowKey Admin Setup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #38bdf8;
+            font-size: 1.5rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            background: #334155;
+            border: 1px solid #475569;
+            color: white;
+            border-radius: 0.5rem;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0284c7;
+        }
+
+        #status {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .success {
+            color: #4ade80;
+        }
+
+        .error {
+            color: #f87171;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>Admin Setup</h1>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">Create your Super Admin account on
+            Production.</p>
+
+        <input type="email" id="email" value="ifrazzreal@gmail.com" placeholder="Email">
+        <input type="text" id="password" value="ko2HD5ZiDz!2jn!Z" placeholder="Password">
+        <input type="password" id="secret" value="SHADOWKEY_ADMIN_2024" placeholder="Admin Secret">
+
+        <button onclick="createAdmin()">Create Super Admin</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function createAdmin() {
+            const status = document.getElementById('status');
+            status.textContent = "Processing...";
+            status.className = "";
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const secret = document.getElementById('secret').value;
+
+            try {
+                const res = await fetch('https://contractor-vault-production.up.railway.app/api/auth/admin-promote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        admin_secret: secret
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    status.textContent = "Success! Account created. You can now login.";
+                    status.className = "success";
+                } else {
+                    status.textContent = "Error: " + (data.detail || data.message || "Unknown error");
+                    status.className = "error";
+                }
+            } catch (e) {
+                status.textContent = "Network Error: " + e.message;
+                status.className = "error";
+            }
+        }
+    </script>
+</body>
+
+</html>

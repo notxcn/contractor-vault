@@ -101,8 +101,14 @@ def init_db():
                     conn.execute(text("ALTER TABLE users ADD COLUMN password_hash TEXT"))
                     conn.commit()
                     logger.info("password_hash column added successfully.")
-                else:
                     logger.info("password_hash column already exists.")
+                    
+                # Migration for is_superuser
+                if 'is_superuser' not in columns:
+                    logger.info("Adding is_superuser column to users table (SQLite)...")
+                    conn.execute(text("ALTER TABLE users ADD COLUMN is_superuser BOOLEAN DEFAULT 0"))
+                    conn.commit()
+                    logger.info("is_superuser column added successfully.")
             else:
                 # PostgreSQL: Use information_schema
                 result = conn.execute(text("""
@@ -117,6 +123,18 @@ def init_db():
                     logger.info("password_hash column added successfully.")
                 else:
                     logger.info("password_hash column already exists.")
+                    
+                 # Migration for is_superuser (Postgres)
+                result = conn.execute(text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'users' AND column_name = 'is_superuser'
+                """))
+                if result.fetchone() is None:
+                    logger.info("Adding is_superuser column to users table (PostgreSQL)...")
+                    conn.execute(text("ALTER TABLE users ADD COLUMN is_superuser BOOLEAN DEFAULT FALSE"))
+                    conn.commit()
+                    logger.info("is_superuser column added successfully.")
     except Exception as e:
         logger.warning(f"Migration check failed: {e}")
     

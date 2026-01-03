@@ -91,13 +91,14 @@ $('btn-back-claim').onclick = () => showSection('main-menu');
 
 // Admin Link
 $('btn-admin').onclick = () => {
-    chrome.tabs.create({ url: 'https://contractor-vault.vercel.app' });
+    chrome.tabs.create({ url: 'https://shadowkey.org/dashboard' });
 };
 
 // Share Secret Link
-$('btn-share-secret').onclick = () => {
-    chrome.tabs.create({ url: 'https://contractor-vault.vercel.app/?tab=secrets' });
-};
+// Link removed
+// $('btn-share-secret').onclick = () => {
+//     chrome.tabs.create({ url: 'https://contractor-vault.vercel.app/?tab=secrets' });
+// };
 
 // SHARE: Step 1 - Capture
 $('btn-capture').onclick = async () => {

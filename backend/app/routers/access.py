@@ -63,9 +63,13 @@ async def list_tokens(
         List of tokens created by the current user
     """
     # Filter by current user's email - users only see their own tokens
-    query = db.query(SessionToken).filter(
-        SessionToken.created_by == current_user.email
-    )
+    # UNLESS they are a superuser
+    if current_user.is_superuser:
+        query = db.query(SessionToken)
+    else:
+        query = db.query(SessionToken).filter(
+            SessionToken.created_by == current_user.email
+        )
     
     now = datetime.now(timezone.utc)
     

@@ -3,7 +3,7 @@
  * Added server-side validation (Kill Switch polling)
  */
 
-const BASE_URL = 'https://contractor-vault-production.up.railway.app';
+const API_URL = 'https://contractor-vault-production.up.railway.app';
 
 // ===== UTILITY FUNCTIONS =====
 

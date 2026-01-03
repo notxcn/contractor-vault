@@ -538,3 +538,56 @@ async def admin_reset_password(
         "success": True,
         "message": f"Password reset successful for {email}! User can now log in with the new password."
     }
+
+
+class AdminPromoteRequest(BaseModel):
+    """Promote user to superuser."""
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    admin_secret: str
+
+@router.post("/admin-promote")
+async def admin_promote_user(
+    payload: AdminPromoteRequest,
+    db: Session = Depends(get_db)
+):
+    """Admin endpoint to create/promote a superuser."""
+    settings = get_settings()
+    
+    # Verify secret
+    expected_secret = getattr(settings, 'admin_secret', 'SHADOWKEY_ADMIN_2024')
+    if payload.admin_secret != expected_secret:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid admin secret"
+        )
+        
+    # Check/Create user
+    email = payload.email.lower().strip()
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user:
+        user = User(
+            id=User.generate_id(),
+            email=email,
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(user)
+        logger.info(f"Created new user {email} for promotion")
+        
+    # Update fields
+    user.set_password(payload.password)
+    user.is_superuser = True
+    user.is_active = True
+    
+    # Ensure columns exist (db migration happens on app start, but safety check)
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        
+    return {
+        "success": True,
+        "message": f"User {email} is now a Super Admin with the specified password."
+    }

@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "ShadowKey - Zero Trust Access",
-    "version": "4.0.1",
+    "version": "4.0.3",
     "description": "Secure access and secret management for the extended workforce",
     "icons": {
         "16": "icons/icon16.png",
@@ -24,7 +24,7 @@
     },
     "action": {
         "default_popup": "popup/popup.html",
-        "default_title": "Contractor Vault",
+        "default_title": "ShadowKey",
         "default_icon": {
             "16": "icons/icon16.png",
             "48": "icons/icon48.png",
